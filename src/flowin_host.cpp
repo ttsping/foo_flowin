@@ -32,15 +32,71 @@ class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog> {
         ::uSetDlgItemText(*this, IDC_EDIT_CUSTOM_TITLE, title_);
         return TRUE;
     }
+
     void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) {
         if (id == IDOK) {
             ::uGetDlgItemText(*this, IDC_EDIT_CUSTOM_TITLE, title_);
         }
-        ::EndDialog(m_hWnd, id);
+        EndDialog(id);
     }
 
   private:
     pfc::string8& title_;
+};
+
+class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
+  public:
+    enum { IDD = IDD_TRANSPARENCY };
+
+    CTransparencySetDialog(HWND wnd, cfg_flowin_host::sp_t host_cfg) : window_(wnd), cfg_(host_cfg) {}
+
+    BEGIN_MSG_MAP_EX(CTransparencySetDialog)
+        MSG_WM_INITDIALOG(OnInitDialog)
+        COMMAND_RANGE_HANDLER_EX(IDOK, IDCANCEL, OnCloseCmd)
+        COMMAND_ID_HANDLER_EX(IDC_CHK_TRANSPARENCY_ACTIVE, OnEnableHoverTransparency)
+        MSG_WM_HSCROLL(OnHScroll)
+    END_MSG_MAP()
+
+  private:
+    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+        CenterWindow(GetParent());
+        track_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY));
+        track_ctrl_.SetRange(0, 100);
+        track_ctrl_.SetPos((int)cfg_->transparency);
+
+        uButton_SetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE, cfg_->enable_transparency_active);
+
+        track_hover_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY_HOVER));
+        track_hover_ctrl_.SetRange(0, 100);
+        track_hover_ctrl_.SetPos((int)cfg_->transparency_active);
+        if (!cfg_->enable_transparency_active) {
+            track_hover_ctrl_.EnableWindow(FALSE);
+        }
+        return TRUE;
+    }
+
+    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) { EndDialog(id); }
+
+    void OnEnableHoverTransparency(UINT /*code*/, int /*id*/, CWindow /*ctrl*/) {
+        cfg_->enable_transparency_active = uButton_GetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE);
+        track_hover_ctrl_.EnableWindow(cfg_->enable_transparency_active);
+    }
+
+    void OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl) {
+        if (code == TB_THUMBTRACK) {
+            int transparency = -1;
+            cfg_->transparency = track_ctrl_.GetPos();
+            cfg_->transparency_active = track_hover_ctrl_.GetPos();
+            transparency = ctrl.GetDlgCtrlID() == IDC_SLIDER_TRANSPARENCY ? (int)cfg_->transparency : (int)cfg_->transparency_active;
+            ::PostMessage(window_, UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency, 0);
+        }
+    }
+
+  private:
+    cfg_flowin_host::sp_t cfg_;
+    HWND window_;
+    CTrackBarCtrl track_ctrl_;
+    CTrackBarCtrl track_hover_ctrl_;
 };
 
 typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME, 0> CFlowinTraits;
@@ -99,6 +155,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MSG_WM_CREATE(on_create)
         MSG_WM_PAINT(on_paint)
         MSG_WM_ERASEBKGND(on_erase_bkgnd)
+        MSG_WM_ACTIVATE(on_active)
         MSG_WM_LBUTTONUP(on_lbutton_up)
         MSG_WM_CONTEXTMENU(on_context_menu)
         MSG_WM_INITMENUPOPUP(on_init_menu_popup)
@@ -109,6 +166,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MESSAGE_HANDLER_EX(UWM_FLOWIN_COMMAND, on_flowin_command)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_REFRESH_CONFIG, on_refresh_config)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_ACTIVE, on_active_flowin)
+        MESSAGE_HANDLER_EX(UWM_FLOWIN_UPDATE_TRANSPARENCY, on_update_transparency)
         CHAIN_MSG_MAP(ui_element_instance_host_base)
         CHAIN_MSG_MAP(CSnapWindow<flowin_host>)
     END_MSG_MAP()
@@ -127,8 +185,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     bool has_child() { return element_inst_.is_valid() && ::IsWindow(element_inst_->get_wnd()); }
 
     bool pretranslate_message(MSG* p_msg) {
-        if (p_msg->message == WM_MOUSEMOVE || p_msg->message == WM_MOUSELEAVE) {
-            if (host_config_ && host_config_->enable_snap && IsChild(p_msg->hwnd)) {
+        if (p_msg->message == WM_MOUSEMOVE || p_msg->message == WM_NCMOUSEMOVE) {
+            if (host_config_ && (host_config_->enable_snap || host_config_->enable_transparency_active) && IsChild(p_msg->hwnd)) {
                 SendMessage(p_msg->message, p_msg->wParam, p_msg->lParam);
             }
         }
@@ -209,6 +267,14 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     t_size host_notify(ui_element_instance* source, const GUID& what, t_size param1, const void* param2, t_size param2size) { return 0; }
 
   private:
+    bool is_transparency_enabled() {
+        return (host_config_->transparency > 0) || (host_config_->enable_transparency_active && host_config_->transparency_active > 0);
+    }
+
+    void update_transparency() {
+        PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)-1);
+    }
+
     void set_always_on_top(bool on_top) { SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{ 0 }, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE); }
 
     void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false) {
@@ -255,6 +321,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap, host_config_->enable_autohide_when_snapped);
         insert_menu(menu, t_menu_cmd_edit_mode, L"Edit mode", true, host_config_->edit_mode);
         insert_menu(menu, t_menu_cmd_flowin_custom_title, L"Custom Title");
+        insert_menu(menu, t_menu_cmd_flowin_transparency, L"Transparency");
         insert_menu(menu, t_menu_cmd_destroy_element, L"Delete");
         if (sys_menu) {
             insert_menu(menu, 0, nullptr);
@@ -311,6 +378,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 if (IDOK == dlg.DoModal(*this)) {
                     ::uSetWindowText(*this, host_config_->window_title);
                 }
+            } break;
+
+            case t_menu_cmd_flowin_transparency: {
+                CTransparencySetDialog dlg(m_hWnd, host_config_);
+                dlg.DoModal(*this);
+                update_transparency();
             } break;
 
             default:
@@ -374,6 +447,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
         set_always_on_top(host_config_->always_on_top);
         flowin_utils::add_or_remove_window_frame(*this, !host_config_->show_caption);
+
         // snap config
         enable_window_snap_ = host_config_->enable_snap;
         enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
@@ -389,19 +463,23 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         } catch (std::exception&) {
         }
 
+        if (is_transparency_enabled()) {
+            update_transparency();
+        }
+
         return TRUE;
     }
 
     void on_close() {
-        SetMsgHandled(FALSE);
         ShowWindow(SW_HIDE);
         SendMessage(UWM_FLOWIN_REFRESH_CONFIG);
+        SetMsgHandled(FALSE);
     }
 
     void on_destroy() {
-        SetMsgHandled(FALSE);
         flowin_core::get()->remove_flowin_host(host_config_->guid);
         host_config_.reset();
+        SetMsgHandled(FALSE);
     }
 
     void on_paint(CDCHandle /*dc*/) {
@@ -421,6 +499,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         brush.CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
         dc.FillRect(&rc, brush);
         return TRUE;
+    }
+
+    void on_active(UINT state, BOOL /*minimized*/, CWindow /*wnd_other*/) {
+        if (is_transparency_enabled()) {
+            update_transparency();
+        }
     }
 
     void on_lbutton_up(UINT flags, CPoint point) {
@@ -480,6 +564,21 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     LRESULT on_active_flowin(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
         BringWindowToTop();
+        return TRUE;
+    }
+
+    LRESULT on_update_transparency(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/) {
+        ModifyStyleEx(0, WS_EX_LAYERED);
+        int transparency = (int)wp;
+        BYTE alpha = 0;
+        if (transparency >= 0) {
+            alpha = (BYTE)(255.0 - transparency * 255.0 / 100);
+        } else if (host_config_->enable_transparency_active && GetActiveWindow() == m_hWnd) {
+            alpha = (BYTE)(255.0 - host_config_->transparency_active * 255.0 / 100);
+        } else {
+            alpha = (BYTE)(255.0 - host_config_->transparency * 255.0 / 100);
+        }
+        SetLayeredWindowAttributes(*this, 0, alpha, LWA_ALPHA);
         return TRUE;
     }
 

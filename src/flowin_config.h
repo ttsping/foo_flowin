@@ -33,7 +33,10 @@ class cfg_flowin_host {
     pfc::string8 window_title;
     GUID subelement_guid;
     mem_block_container_impl subelement_data;
-
+    bool enable_transparency_active;
+    uint32_t transparency;
+    uint32_t transparency_active;
+    uint32_t reserved[20];
     // internal use
     bool edit_mode;
 

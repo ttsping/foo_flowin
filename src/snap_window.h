@@ -9,10 +9,16 @@
 #error snap_window.h requires atlwin.h to be included first
 #endif
 
+#define UWM_MOUSEENTER (WM_USER + 998)
+#define UWM_MOUSELEAVE (WM_USER + 999)
+
 template<typename T>
 class CSnapWindow {
   private:
-    enum { SNAP_TIMER_ID = 0x1102 };
+    enum {
+        SNAP_TIMER_ID = 0x1102,
+        MOUSE_CHECK_TIMER_ID,
+    };
 
   protected:
     enum SNAP_STATE {
@@ -30,13 +36,27 @@ class CSnapWindow {
         MESSAGE_HANDLER(WM_MOVING, OnMoving)
         MESSAGE_HANDLER(WM_ENTERSIZEMOVE, OnEnterSizeMove)
         MESSAGE_HANDLER(WM_EXITSIZEMOVE, OnExitSizeMove)
-        MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
-        MESSAGE_HANDLER(WM_NCMOUSEMOVE, OnNCMouseMove)
-        MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
-        MESSAGE_HANDLER(WM_NCMOUSELEAVE, OnNCMouseLeave)
         MESSAGE_HANDLER(WM_TIMER, OnTimer)
         MESSAGE_HANDLER(WM_DPICHANGED, OnDPIChanged)
+        MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+        MESSAGE_HANDLER(WM_NCMOUSEMOVE, OnMouseMove)
+        MESSAGE_HANDLER(UWM_MOUSEENTER, OnMouseEnter)
+        MESSAGE_HANDLER(UWM_MOUSELEAVE, OnMouseLeave)
     END_MSG_MAP()
+
+  public:
+    inline HWND GetHWnd() { return static_cast<T*>(this)->m_hWnd; }
+
+    BOOL IsMouseInWindow() {
+        POINT pt;
+        GetCursorPos(&pt);
+        HWND hMyWnd = GetHWnd();
+        HWND hWnd = WindowFromPoint(pt);
+        while (hWnd && hWnd != hMyWnd) {
+            hWnd = GetParent(hWnd);
+        }
+        return hWnd != NULL;
+    }
 
   protected:
     LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/) {
@@ -76,7 +96,7 @@ class CSnapWindow {
         snap_state_ = SNAP_NONE;
         RECT rect;
         POINT pt;
-        if (GetWindowRect(GetWindowHandle(), &rect) && GetCursorPos(&pt)) {
+        if (::GetWindowRect(GetHWnd(), &rect) && GetCursorPos(&pt)) {
             snap_dx_ = pt.x - rect.left;
             snap_dy_ = pt.y - rect.top;
         }
@@ -89,62 +109,31 @@ class CSnapWindow {
     }
 
     LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
-        if (!enable_window_snap_auto_hide_)
-            return 0;
-        if (!track_mouse_) {
-            POINT pt;
-            if (GetCursorPos(&pt)) {
-                TRACKMOUSEEVENT tme = { 0 };
-                tme.cbSize = sizeof(tme);
-                tme.dwFlags = TME_LEAVE;
-                tme.hwndTrack = WindowFromPoint(pt);
-                track_mouse_ = _TrackMouseEvent(&tme);
-            }
-        }
-
-        if (snap_state_ == SNAP_INVALID) {
-            snap_state_ = CheckSnapState();
-        } else if (snap_state_ != SNAP_NONE) {
-            SNAP_STATE state = CheckSnapState();
-            if (state != snap_state_) {
-                StartSnapAnimateTimer();
-            }
+        if (enable_window_snap_auto_hide_ && !mouse_check_timer_) {
+            ::PostMessage(GetHWnd(), UWM_MOUSEENTER, 0, 0);
+            StartMouseCheckTimer();
         }
         return 0;
     }
 
-    LRESULT OnNCMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
-        if (!enable_window_snap_auto_hide_)
-            return 0;
-        if (!track_ncmouse_) {
-            TRACKMOUSEEVENT tme = { 0 };
-            tme.cbSize = sizeof(tme);
-            tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
-            tme.hwndTrack = GetWindowHandle();
-            track_ncmouse_ = _TrackMouseEvent(&tme);
-        }
-        if (snap_state_ == SNAP_INVALID) {
-            snap_state_ = CheckSnapState();
-        } else if (snap_state_ != SNAP_NONE) {
-            SNAP_STATE state = CheckSnapState();
-            if (state != snap_state_) {
-                StartSnapAnimateTimer();
+    LRESULT OnMouseEnter(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+        mouse_in_window_ = TRUE;
+        if (enable_window_snap_auto_hide_) {
+            if (snap_state_ == SNAP_INVALID) {
+                snap_state_ = CheckSnapState();
+            } else if (snap_state_ != SNAP_NONE) {
+                SNAP_STATE state = CheckSnapState();
+                if (state != snap_state_) {
+                    StartSnapAnimateTimer();
+                }
             }
         }
         return 0;
     }
 
     LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
-        track_mouse_ = FALSE;
-        if (snap_state_ != SNAP_NONE && !CursorInWindow()) {
-            StartSnapAnimateTimer();
-        }
-        return 0;
-    }
-
-    LRESULT OnNCMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
-        track_ncmouse_ = FALSE;
-        if (snap_state_ != SNAP_NONE && !CursorInWindow()) {
+        mouse_in_window_ = FALSE;
+        if (snap_state_ != SNAP_NONE) {
             StartSnapAnimateTimer();
         }
         return 0;
@@ -152,15 +141,21 @@ class CSnapWindow {
 
     LRESULT OnTimer(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/, BOOL& /*handled*/) {
         UINT_PTR id = (UINT_PTR)wp;
-        if (id == SNAP_TIMER_ID) {
-            auto mouse_in_window = [](HWND wnd) {
-                RECT rect;
-                POINT pt;
-                return ::GetWindowRect(wnd, &rect) && GetCursorPos(&pt) && PtInRect(&rect, pt);
-            };
-            if (!AnimateSnappedWindow(track_mouse_ || track_ncmouse_ || mouse_in_window(GetWindowHandle()))) {
-                KillSnapAnimateTimer();
-            }
+        switch (id) {
+            case SNAP_TIMER_ID:
+                if (!AnimateSnappedWindow(mouse_in_window_)) {
+                    KillSnapAnimateTimer();
+                }
+                return 0;
+
+            case MOUSE_CHECK_TIMER_ID:
+                if (!IsMouseInWindow()) {
+                    ::PostMessage(GetHWnd(), UWM_MOUSELEAVE, 0, 0);
+                    KillMouseCheckTimer();
+                }
+                return 0;
+            default:
+                break;
         }
         return 1;
     }
@@ -171,10 +166,9 @@ class CSnapWindow {
     }
 
   protected:
-
     SNAP_STATE CheckSnapState() {
         RECT rect;
-        if (!::GetWindowRect(GetWindowHandle(), &rect))
+        if (!::GetWindowRect(GetHWnd(), &rect))
             return SNAP_NONE;
 
         RECT rect_work = { 0 };
@@ -194,37 +188,36 @@ class CSnapWindow {
     }
 
     BOOL GetSnapWindowRect(LPRECT prc) {
-        if (!::GetWindowRect(GetWindowHandle(), prc))
+        if (!::GetWindowRect(GetHWnd(), prc))
             return FALSE;
         RECT rect_work = { 0 };
         if (!GetWorkAreaRect(&rect_work))
-            return TRUE; // use current rect
+            return TRUE;  // use current rect
         int ww = prc->right - prc->left;
         int wh = prc->bottom - prc->top;
-        switch (snap_state_)
-        {
-        case SNAP_LEFT:
-            prc->left = rect_work.left;
-            prc->right = prc->left + ww;
-            break;
+        switch (snap_state_) {
+            case SNAP_LEFT:
+                prc->left = rect_work.left;
+                prc->right = prc->left + ww;
+                break;
 
-        case SNAP_TOP:
-            prc->top = rect_work.top;
-            prc->bottom = prc->top + wh;
-            break;
+            case SNAP_TOP:
+                prc->top = rect_work.top;
+                prc->bottom = prc->top + wh;
+                break;
 
-        case SNAP_RIGHT:
-            prc->right = rect_work.right;
-            prc->left = prc->right - ww;
-            break;
+            case SNAP_RIGHT:
+                prc->right = rect_work.right;
+                prc->left = prc->right - ww;
+                break;
 
-        case SNAP_BOTTOM:
-            prc->bottom = rect_work.bottom;
-            prc->top = prc->bottom - wh;
-            break;
+            case SNAP_BOTTOM:
+                prc->bottom = rect_work.bottom;
+                prc->top = prc->bottom - wh;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
         return TRUE;
     }
@@ -233,7 +226,7 @@ class CSnapWindow {
         if (snap_state_ != SNAP_NONE) {
             RECT rect = { 0 };
             if (GetSnapWindowRect(&rect)) {
-                ::SetWindowPos(GetWindowHandle(), HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                ::SetWindowPos(GetHWnd(), HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             }
         }
     }
@@ -241,14 +234,27 @@ class CSnapWindow {
   private:
     inline VOID StartSnapAnimateTimer() {
         if (snap_timer_ == NULL) {
-            snap_timer_ = ::SetTimer(GetWindowHandle(), SNAP_TIMER_ID, 10, NULL);
+            snap_timer_ = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, 10, NULL);
         }
     }
 
     inline VOID KillSnapAnimateTimer() {
         if (snap_timer_) {
-            ::KillTimer(GetWindowHandle(), SNAP_TIMER_ID);
+            ::KillTimer(GetHWnd(), SNAP_TIMER_ID);
             snap_timer_ = NULL;
+        }
+    }
+
+    inline VOID StartMouseCheckTimer() {
+        if (mouse_check_timer_ == NULL) {
+            mouse_check_timer_ = ::SetTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID, 100, NULL);
+        }
+    }
+
+    inline VOID KillMouseCheckTimer() {
+        if (mouse_check_timer_) {
+            ::KillTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID);
+            mouse_check_timer_ = NULL;
         }
     }
 
@@ -260,15 +266,7 @@ class CSnapWindow {
         }
     }
 
-    inline HWND GetWindowHandle() { return (static_cast<T*>(this))->m_hWnd; }
-
     inline BOOL DetectSnap(int x1, int x2) { return std::abs(x1 - x2) < snap_detect_val_; }
-
-    BOOL CursorInWindow() {
-        RECT rect;
-        POINT pt;
-        return ::GetWindowRect(GetWindowHandle(), &rect) && GetCursorPos(&pt) && PtInRect(&rect, pt);
-    }
 
     BOOL GetWorkAreaRect(LPRECT prc) {
         ZeroMemory(prc, sizeof(prc));
@@ -286,7 +284,7 @@ class CSnapWindow {
 
     BOOL AnimateSnappedWindow(BOOL revert = FALSE) {
         RECT rect;
-        HWND window = GetWindowHandle();
+        HWND window = GetHWnd();
         if (!::GetWindowRect(window, &rect))
             return FALSE;
         RECT rect_work = { 0 };
@@ -384,10 +382,8 @@ class CSnapWindow {
     int snap_dx_ = 0, snap_dy_ = 0;
     int snap_detect_val_ = 0;
     SNAP_STATE snap_state_ = SNAP_INVALID;
-    BOOL track_mouse_ = FALSE;
-    BOOL track_ncmouse_ = FALSE;
-    BOOL mouse_in_nclient_ = FALSE;
-    BOOL mouse_in_client_ = FALSE;
     UINT_PTR snap_timer_ = 0;
+    UINT_PTR mouse_check_timer_ = 0;
     int kSnapHideEdgeWidth = 8;
+    BOOL mouse_in_window_ = FALSE;
 };

@@ -6,7 +6,7 @@ cfg_flowin g_flowin_config;
 
 cfg_flowin* cfg_flowin::get() { return &g_flowin_config; }
 
-enum t_flowin_config_version { t_version_010 = 1, t_version_current = t_version_010 };
+enum t_flowin_config_version { t_version_010 = 1, t_version_011 = 3, t_version_current = t_version_011 };
 
 void cfg_flowin_host::reset() {
     version = t_version_current;
@@ -24,6 +24,9 @@ void cfg_flowin_host::reset() {
     guid = pfc::guid_null;
     subelement_guid = pfc::guid_null;
     edit_mode = false;
+    enable_transparency_active = false;
+    transparency = 0;
+    transparency_active = 0;
     ZeroMemory(&window_rect, sizeof(window_rect));
 }
 
@@ -36,6 +39,12 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
         t_size cfg_data_size = 0;
         reader->read_lendian_t(version, abort);
         switch (version) {
+            case t_version_011:
+                reader->read_object_t(enable_transparency_active, abort);
+                reader->read_lendian_t(transparency, abort);
+                reader->read_lendian_t(transparency_active, abort);
+                reader->read_object(reserved, sizeof(reserved), abort);
+                [[fallthrough]];
             case t_version_010:
                 reader->read_object_t(guid, abort);
                 reader->read_object_t(show_on_startup, abort);
@@ -69,6 +78,12 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
     try {
         uint32_t ver = t_version_current;
         writer->write_lendian_t(ver, abort);
+        // version 011
+        writer->write_object_t(enable_transparency_active, abort);
+        writer->write_lendian_t(transparency, abort);
+        writer->write_lendian_t(transparency_active, abort);
+        writer->write_object(reserved, sizeof(reserved), abort);
+        // version 010
         writer->write_object_t(guid, abort);
         writer->write_object_t(show_on_startup, abort);
         writer->write_object_t(always_on_top, abort);
@@ -194,6 +209,7 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
     try {
         p_stream->read_lendian_t(version, p_abort);
         switch (version) {
+            case t_version_011:
             case t_version_010: {
                 p_stream->read_lendian_t(show_debug_log, p_abort);
                 t_size n, m = 0;

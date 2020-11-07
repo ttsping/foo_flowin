@@ -60,10 +60,12 @@ enum t_flowin_menu_command_id {
     t_menu_cmd_flowin_custom_title,
     t_menu_cmd_flowin_no_frame,
     t_menu_cmd_flowin_pseudo_transparent,
+    t_menu_cmd_flowin_transparency,
 };
 
 enum t_flowin_user_message {
     UWM_FLOWIN_COMMAND = 0x0813,
     UWM_FLOWIN_REFRESH_CONFIG,
     UWM_FLOWIN_ACTIVE,
+    UWM_FLOWIN_UPDATE_TRANSPARENCY,
 };
