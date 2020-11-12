@@ -160,6 +160,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MSG_WM_CONTEXTMENU(on_context_menu)
         MSG_WM_INITMENUPOPUP(on_init_menu_popup)
         MSG_WM_SYSCOMMAND(on_sys_command)
+        MSG_WM_SHOWWINDOW(on_show_window)
         MSG_WM_SIZE(on_size)
         MSG_WM_CLOSE(on_close)
         MSG_WM_DESTROY(on_destroy)
@@ -539,6 +540,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     void on_sys_command(UINT id, CPoint /*point*/) {
         execute_context_menu(id);
         SetMsgHandled(FALSE);
+    }
+
+    void on_show_window(BOOL show, UINT /*status*/) {
+        if (has_child()) {
+            element_inst_->notify(ui_element_notify_visibility_changed, (t_size)!!show, nullptr, 0);
+        }
     }
 
     void on_size(UINT type, CSize size) {
