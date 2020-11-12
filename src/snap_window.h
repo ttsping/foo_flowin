@@ -55,6 +55,16 @@ class CSnapWindow {
         while (hWnd && hWnd != hMyWnd) {
             hWnd = GetParent(hWnd);
         }
+
+        if (hWnd == NULL) {
+            GUITHREADINFO gui_info = { 0 };
+            gui_info.cbSize = sizeof(gui_info);
+            if (GetGUIThreadInfo(GetWindowThreadProcessId(hMyWnd, nullptr), &gui_info)) {
+                if (gui_info.hwndMenuOwner && (gui_info.hwndMenuOwner == hMyWnd || IsChild(hMyWnd, gui_info.hwndMenuOwner))) {
+                    hWnd = gui_info.hwndMenuOwner;
+                }
+            }
+        }
         return hWnd != NULL;
     }
 
