@@ -381,7 +381,7 @@ class CSnapWindow {
                 break;
         }
 
-        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, rect.right, rect.right, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
+        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
         return animate_continue;
     }
 
