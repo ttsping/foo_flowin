@@ -633,6 +633,10 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             update_transparency();
         }
 
+        if (!host_config_->always_on_top) {
+            PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top);
+        }
+
         return TRUE;
     }
 
