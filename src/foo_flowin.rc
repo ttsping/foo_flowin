@@ -84,7 +84,7 @@ BEGIN
     GROUPBOX        "No frame options",IDC_STATIC,7,7,295,31
     CONTROL         "Resizable",IDC_RESIZABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,21,46,10
     CONTROL         "Shadow",IDC_SHOW_SHADOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,76,20,41,10
-    CONTROL         "Movable (via Mouse Middle Button)",IDC_MOVABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,139,20,127,10
+    CONTROL         "Movable (via middle mouse button)",IDC_MOVABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,139,20,127,10
 END
 
 
