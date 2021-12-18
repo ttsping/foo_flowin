@@ -514,6 +514,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 BringWindowToTop();
             } break;
 
+            case t_menu_cmd_flowin_bring_to_top: {
+                set_always_on_top(!host_config_->always_on_top);
+                set_always_on_top(host_config_->always_on_top);
+            } break;
+
             default:
                 break;
         }
