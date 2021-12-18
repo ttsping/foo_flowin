@@ -580,9 +580,13 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             // show shadow?
             show_no_frame_shadow(get_cfg_no_frame().shadowed);
 
+            // HACK 
+            // TODO snap in no frame mode not fully supported
+            kSnapHideEdgeWidth = 2;
         } else {
             ModifyStyle(0, WS_CAPTION);
             show_no_frame_shadow(false);
+            kSnapHideEdgeWidth = 8;
         }
 
         // notify changes
