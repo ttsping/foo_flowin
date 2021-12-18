@@ -209,6 +209,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MSG_WM_NCCALCSIZE(on_nc_calc_size)
         MSG_WM_NCHITTEST(on_nc_hittest)
         MSG_WM_NCACTIVATE(on_nc_active)
+        MSG_WM_TIMER(on_timer)
         MSG_WM_CLOSE(on_close)
         MSG_WM_DESTROY(on_destroy)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_COMMAND, on_flowin_command)
@@ -274,6 +275,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     bool is_cfg_no_frame() const { return !host_config_->show_caption; }
 
     auto& get_cfg_no_frame() const { return host_config_->cfg_no_frame; }
+
+    bool is_active() const { return GetActiveWindow() == m_hWnd; }
 
     void set_configuration(ui_element_config::ptr config) override {
         host_config_ = cfg_flowin::get()->add_or_find_configuration(cfg_flowin_host::cfg_get_guid(config));
@@ -351,7 +354,29 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return (host_config_->transparency > 0) || (host_config_->enable_transparency_active && host_config_->transparency_active > 0);
     }
 
-    void update_transparency() { PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)-1); }
+    void calc_intermediate_transparency(int32_t target_transparency) {
+        const int32_t delta = 12;
+        if (tranparency_intermediate_ < target_transparency) {
+            tranparency_intermediate_ = min(target_transparency, tranparency_intermediate_ + delta);
+        } else if (tranparency_intermediate_ > target_transparency) {
+            tranparency_intermediate_ = max(target_transparency, tranparency_intermediate_ - delta);
+        }
+    }
+
+    void update_transparency(int transparency = -1) {
+        if (host_config_->enable_transparency_active && host_config_->transparency != host_config_->transparency_active) {
+            if (tranparency_intermediate_ == -1) {
+                tranparency_intermediate_ = is_active() ? host_config_->transparency : host_config_->transparency_active;
+            } else if (transparency_timer_ == NULL) {
+                transparency_timer_ = SetTimer(kTransparencyTimerID, 20);
+                return;
+            }
+        }
+        if (transparency_timer_ && transparency == -1) {
+            return;
+        }
+        PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency);
+    }
 
     void set_always_on_top(bool on_top) { SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{ 0 }, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE); }
 
@@ -643,7 +668,13 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void on_active(UINT state, BOOL /*minimized*/, CWindow /*wnd_other*/) {
         if (is_transparency_enabled()) {
-            update_transparency();
+            static bool first_time_active = true;
+            if (first_time_active) {
+                PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, -1);
+                first_time_active = false;
+            } else {
+                update_transparency();
+            }
         }
     }
 
@@ -800,6 +831,21 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return FALSE;
     }
 
+    void on_timer(UINT_PTR id) {
+        if (id == kTransparencyTimerID) {
+            uint32_t target_transparency = is_active() ? host_config_->transparency_active : host_config_->transparency;
+            calc_intermediate_transparency(target_transparency);
+            update_transparency(tranparency_intermediate_);
+            if (tranparency_intermediate_ == target_transparency) {
+                KillTimer(id);
+                transparency_timer_ = NULL;
+            }
+            return;
+        }
+
+        SetMsgHandled(FALSE);
+    }
+
     LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/) {
         execute_context_menu((t_uint32)wp);
         return TRUE;
@@ -841,6 +887,9 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     cfg_flowin_host::sp_t host_config_;
     bool is_perform_drag_ = false;
     POINT drag_point_;
+    const int kTransparencyTimerID = 0x1001;
+    UINT_PTR transparency_timer_ = 0;
+    int32_t tranparency_intermediate_ = -1;
 };
 
 class ui_element_flowin_host_impl : public ui_element_impl<flowin_host> {
