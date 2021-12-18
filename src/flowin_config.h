@@ -36,7 +36,13 @@ class cfg_flowin_host {
     bool enable_transparency_active;
     uint32_t transparency;
     uint32_t transparency_active;
-    uint32_t reserved[20];
+    struct {
+        bool resizable : 1;
+        bool draggable : 1;
+        bool shadowed : 1;
+        uint8_t reserved[3];
+    } cfg_no_frame;
+    uint32_t reserved[19];
     // internal use
     bool edit_mode;
 

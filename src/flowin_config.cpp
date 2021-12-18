@@ -27,7 +27,9 @@ void cfg_flowin_host::reset() {
     enable_transparency_active = false;
     transparency = 0;
     transparency_active = 0;
+    ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
     ZeroMemory(&window_rect, sizeof(window_rect));
+    ZeroMemory(&reserved, sizeof(reserved));
 }
 
 void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_callback& abort) {
@@ -43,6 +45,7 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
                 reader->read_object_t(enable_transparency_active, abort);
                 reader->read_lendian_t(transparency, abort);
                 reader->read_lendian_t(transparency_active, abort);
+                reader->read_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
                 reader->read_object(reserved, sizeof(reserved), abort);
                 [[fallthrough]];
             case t_version_010:
@@ -82,6 +85,7 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
         writer->write_object_t(enable_transparency_active, abort);
         writer->write_lendian_t(transparency, abort);
         writer->write_lendian_t(transparency_active, abort);
+        writer->write_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
         writer->write_object(reserved, sizeof(reserved), abort);
         // version 010
         writer->write_object_t(guid, abort);

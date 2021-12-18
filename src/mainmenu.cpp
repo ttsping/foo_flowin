@@ -62,6 +62,10 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                     flags |= mainmenu_commands::flag_disabled;
                 }
                 break;
+            case t_menu_cmd_flowin_reset_position:
+                PFC_ASSERT(config_ != NULL);
+                text = "Reset position";
+                break;
             case t_menu_cmd_edit_mode:
                 PFC_ASSERT(config_ != NULL);
                 text = "Edit mode";
@@ -98,8 +102,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 break;
 
             case t_menu_cmd_close_all:
-                cfg_flowin::get()->enum_configuration(
-                    [](cfg_flowin_host::sp_t config) { flowin_core::get()->post_message(config->guid, WM_CLOSE); });
+                cfg_flowin::get()->enum_configuration([](cfg_flowin_host::sp_t config) { flowin_core::get()->post_message(config->guid, WM_CLOSE); });
                 break;
 
             case t_menu_cmd_show_flowin:
@@ -122,6 +125,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
             case t_menu_cmd_snap_auto_hide:
             case t_menu_cmd_edit_mode:
             case t_menu_cmd_destroy_element:
+            case t_menu_cmd_flowin_reset_position:
                 PFC_ASSERT(config_ != NULL);
                 flowin_core::get()->post_message(config_->guid, UWM_FLOWIN_COMMAND, (WPARAM)cmd_);
                 break;
@@ -150,8 +154,10 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
 class live_flowin_node_group : public mainmenu_node_group {
   public:
     live_flowin_node_group(cfg_flowin_host::sp_t cfg) : config_(cfg) {
-        t_uint32 menus_id[] = { t_menu_cmd_show_flowin,  t_menu_cmd_show_flowin_on_startup, t_menu_cmd_always_on_top, t_menu_cmd_flowin_no_frame,
-                                t_menu_cmd_snap_to_edge, t_menu_cmd_snap_auto_hide,         t_menu_cmd_edit_mode,     t_menu_cmd_destroy_element };
+        t_uint32 menus_id[] = {
+            t_menu_cmd_show_flowin,    t_menu_cmd_show_flowin_on_startup, t_menu_cmd_always_on_top, t_menu_cmd_flowin_no_frame, t_menu_cmd_snap_to_edge,
+            t_menu_cmd_snap_auto_hide, t_menu_cmd_flowin_reset_position,  t_menu_cmd_edit_mode,     t_menu_cmd_destroy_element,
+        };
         for (t_size n = 0, m = pfc::array_size_t(menus_id); n < m; ++n) {
             auto node = fb2k::service_new<flowin_config_menu_node_command>(menus_id[n], cfg);
             menu_nodes_.push_back(std::move(node));

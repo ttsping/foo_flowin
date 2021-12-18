@@ -15,5 +15,5 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 }
 
 namespace {
-    DECLARE_COMPONENT_VERSION("Flowin", "0.1.3 beta", "ohyeah");
+    DECLARE_COMPONENT_VERSION("Flowin", "0.1.5 beta", "ohyeah");
 }

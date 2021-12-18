@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <shobjidl.h>
 #include <comdef.h>
+#include <dwmapi.h>
 #include "snap_window.h"
 #include "flowin_vars.h"
 #include "flowin_config.h"
@@ -10,6 +11,7 @@
 #include "libPPUI/win32_utility.h"
 #include "flowin_utils.h"
 #include "resource.h"
+#pragma comment(lib, "dwmapi.lib")
 
 _COM_SMARTPTR_TYPEDEF(ITaskbarList, __uuidof(ITaskbarList));
 
@@ -99,6 +101,45 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
     CTrackBarCtrl track_hover_ctrl_;
 };
 
+class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
+  public:
+    enum { IDD = IDD_NO_FRAME_SETTING };
+
+    CNoFrameSettingsDialog(cfg_flowin_host::sp_t host_cfg) : cfg_(host_cfg) {}
+
+    BEGIN_MSG_MAP_EX(CNoFrameSettingsDialog)
+        MSG_WM_INITDIALOG(OnInitDialog)
+        COMMAND_RANGE_HANDLER_EX(IDOK, IDCANCEL, OnCloseCmd)
+    END_MSG_MAP()
+
+  private:
+    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+        CenterWindow(GetParent());
+
+        pfc::string8 tips_fmt, tips;
+        uGetDlgItemText(m_hWnd, IDC_NO_FRAME_TIPS, tips_fmt);
+        uReplaceString(tips, tips_fmt, tips_fmt.length(), "%s", 2, cfg_->window_title, cfg_->window_title.length(), false);
+        uSetDlgItemText(m_hWnd, IDC_NO_FRAME_TIPS, tips);
+
+        uButton_SetCheck(m_hWnd, IDC_RESIZABLE, cfg_->cfg_no_frame.resizable);
+        uButton_SetCheck(m_hWnd, IDC_MOVABLE, cfg_->cfg_no_frame.draggable);
+        uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, cfg_->cfg_no_frame.shadowed);
+        return TRUE;
+    }
+
+    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) {
+        if (id == IDOK) {
+            cfg_->cfg_no_frame.resizable = uButton_GetCheck(m_hWnd, IDC_RESIZABLE);
+            cfg_->cfg_no_frame.draggable = uButton_GetCheck(m_hWnd, IDC_MOVABLE);
+            cfg_->cfg_no_frame.shadowed = uButton_GetCheck(m_hWnd, IDC_SHOW_SHADOW);
+        }
+        EndDialog(id);
+    }
+
+  private:
+    cfg_flowin_host::sp_t cfg_;
+};
+
 typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME, 0> CFlowinTraits;
 
 class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
@@ -157,11 +198,17 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MSG_WM_ERASEBKGND(on_erase_bkgnd)
         MSG_WM_ACTIVATE(on_active)
         MSG_WM_LBUTTONUP(on_lbutton_up)
+        MSG_WM_MBUTTONDOWN(on_mbutton_down)
+        MSG_WM_MBUTTONUP(on_mbutton_up)
+        MSG_WM_MOUSEMOVE(on_mouse_move)
         MSG_WM_CONTEXTMENU(on_context_menu)
         MSG_WM_INITMENUPOPUP(on_init_menu_popup)
         MSG_WM_SYSCOMMAND(on_sys_command)
         MSG_WM_SHOWWINDOW(on_show_window)
         MSG_WM_SIZE(on_size)
+        MSG_WM_NCCALCSIZE(on_nc_calc_size)
+        MSG_WM_NCHITTEST(on_nc_hittest)
+        MSG_WM_NCACTIVATE(on_nc_active)
         MSG_WM_CLOSE(on_close)
         MSG_WM_DESTROY(on_destroy)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_COMMAND, on_flowin_command)
@@ -183,18 +230,50 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
     static const char* g_get_description() { return ""; }
 
+    const int kWindowFrameX = ::GetSystemMetrics(SM_CXSIZEFRAME);
+    const int kWindowFrameY = ::GetSystemMetrics(SM_CYSIZEFRAME);
+
     bool has_child() { return element_inst_.is_valid() && ::IsWindow(element_inst_->get_wnd()); }
 
     bool pretranslate_message(MSG* p_msg) {
-        if (p_msg->message == WM_MOUSEMOVE || p_msg->message == WM_NCMOUSEMOVE) {
-            if (host_config_ && (host_config_->enable_snap || host_config_->enable_transparency_active) && IsChild(p_msg->hwnd)) {
-                SendMessage(p_msg->message, p_msg->wParam, p_msg->lParam);
-            }
+        if (!IsChild(p_msg->hwnd)) {
+            return false;
+        }
+        if (!host_config_) {
+            return false;
+        }
+
+        bool forward_message = false;
+        switch (p_msg->message) {
+            case WM_MOUSEMOVE:
+            case WM_NCMOUSEMOVE:
+                if (host_config_->enable_snap || host_config_->enable_transparency_active) {
+                    forward_message = true;
+                }
+                if (is_perform_drag_) {
+                    forward_message = true;
+                }
+                break;
+            case WM_MBUTTONDOWN:
+            case WM_MBUTTONUP:
+                if (is_cfg_no_frame()) {
+                    forward_message = true;
+                }
+                break;
+            default:
+                break;
+        }
+        if (forward_message) {
+            SendMessage(p_msg->message, p_msg->wParam, p_msg->lParam);
         }
         return false;
     }
 
     HWND get_wnd() override { return *this; }
+
+    bool is_cfg_no_frame() const { return !host_config_->show_caption; }
+
+    auto& get_cfg_no_frame() const { return host_config_->cfg_no_frame; }
 
     void set_configuration(ui_element_config::ptr config) override {
         host_config_ = cfg_flowin::get()->add_or_find_configuration(cfg_flowin_host::cfg_get_guid(config));
@@ -272,11 +351,16 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return (host_config_->transparency > 0) || (host_config_->enable_transparency_active && host_config_->transparency_active > 0);
     }
 
-    void update_transparency() {
-        PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)-1);
-    }
+    void update_transparency() { PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)-1); }
 
     void set_always_on_top(bool on_top) { SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{ 0 }, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE); }
+
+    void show_no_frame_shadow(bool show) {
+        if (flowin_utils::is_composition_enabled()) {
+            static const MARGINS extend_margins[2]{ { 0, 0, 0, 0 }, { 1, 1, 1, 1 } };
+            ::DwmExtendFrameIntoClientArea(get_wnd(), &extend_margins[show ? 1 : 0]);
+        }
+    }
 
     void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false) {
         MENUITEMINFOW mii = { 0 };
@@ -337,8 +421,16 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 break;
 
             case t_menu_cmd_flowin_no_frame:
-                host_config_->show_caption = !host_config_->show_caption;
-                flowin_utils::add_or_remove_window_frame(*this, !host_config_->show_caption);
+                if (!host_config_->show_caption) {
+                    host_config_->show_caption = true;
+                    configure_window_style();
+                } else {
+                    CNoFrameSettingsDialog dlg(host_config_);
+                    if (dlg.DoModal(*this) == IDOK) {
+                        host_config_->show_caption = false;
+                        configure_window_style();
+                    }
+                }
                 break;
 
             case t_menu_cmd_snap_to_edge:
@@ -377,6 +469,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             case t_menu_cmd_flowin_custom_title: {
                 CCustomTitleDialog dlg(host_config_->window_title);
                 if (IDOK == dlg.DoModal(*this)) {
+                    if (host_config_->window_title.is_empty()) {
+                        if (has_child()) {
+                            ui_element::g_get_name(host_config_->window_title, element_inst_->get_guid());
+                        }
+                    }
                     ::uSetWindowText(*this, host_config_->window_title);
                 }
             } break;
@@ -385,6 +482,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 CTransparencySetDialog dlg(m_hWnd, host_config_);
                 dlg.DoModal(*this);
                 update_transparency();
+            } break;
+
+            case t_menu_cmd_flowin_reset_position: {
+                CenterWindow(core_api::get_main_window());
+                BringWindowToTop();
             } break;
 
             default:
@@ -425,6 +527,38 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         WIN32_OP_D(SetWindowPos(NULL, rect, SWP_NOZORDER | SWP_NOACTIVATE));
     }
 
+    void adjust_maximized_client_rect(LPRECT rect) {
+        if (flowin_utils::is_maximized(get_wnd())) {
+            HMONITOR mon = MonitorFromWindow(get_wnd(), MONITOR_DEFAULTTONEAREST);
+            WIN32_OP_D(mon != NULL);
+            MONITORINFO mi;
+            mi.cbSize = sizeof(mi);
+            WIN32_OP_D(GetMonitorInfo(mon, &mi));
+            *rect = mi.rcWork;
+        }
+    }
+
+    void configure_window_style() {
+        // frame
+        if (is_cfg_no_frame()) {
+            // window style
+            if (flowin_utils::is_composition_enabled()) {
+                ModifyStyle(0, WS_CAPTION);
+            } else {
+                ModifyStyle(WS_CAPTION, 0);
+            }
+            // show shadow?
+            show_no_frame_shadow(get_cfg_no_frame().shadowed);
+
+        } else {
+            ModifyStyle(0, WS_CAPTION);
+            show_no_frame_shadow(false);
+        }
+
+        // notify changes
+        SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    }
+
   private:
     int on_create(LPCREATESTRUCT lpcs) {
         (VOID) GetSystemMenu(FALSE);
@@ -447,7 +581,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
 
         set_always_on_top(host_config_->always_on_top);
-        flowin_utils::add_or_remove_window_frame(*this, !host_config_->show_caption);
+
+        configure_window_style();
 
         // snap config
         enable_window_snap_ = host_config_->enable_snap;
@@ -497,7 +632,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         CRect rc;
         GetClientRect(&rc);
         CBrush brush;
-        brush.CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
+        t_ui_color background_color;
+        if (!is_cfg_no_frame() || !callback_->query_color(ui_color_background, background_color)) {
+            background_color = GetSysColor(COLOR_BTNFACE);
+        }
+        brush.CreateSolidBrush(background_color);
         dc.FillRect(&rc, brush);
         return TRUE;
     }
@@ -512,6 +651,34 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         if (!has_child()) {
             replace_dialog(*this, 0, pfc::guid_null);
         }
+    }
+
+    void on_mbutton_down(UINT flags, CPoint point) {
+        GetCursorPos(&drag_point_);
+        if (is_cfg_no_frame() && get_cfg_no_frame().draggable) {
+            SetCapture();
+            is_perform_drag_ = true;
+        }
+    }
+
+    void on_mbutton_up(UINT flags, CPoint point) {
+        if (is_perform_drag_) {
+            ReleaseCapture();
+            is_perform_drag_ = false;
+        }
+    }
+
+    void on_mouse_move(UINT flags, CPoint point) {
+        if ((flags & MK_MBUTTON) && is_perform_drag_) {
+            POINT pt = GetCursorPos();
+            RECT rect;
+            WIN32_OP_D(GetWindowRect(&rect));
+            OffsetRect(&rect, pt.x - drag_point_.x, pt.y - drag_point_.y);
+            MoveWindow(&rect);
+            drag_point_ = pt;
+            return;
+        }
+        SetMsgHandled(FALSE);
     }
 
     void on_context_menu(CWindow wnd, CPoint point) {
@@ -544,7 +711,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void on_show_window(BOOL show, UINT /*status*/) {
         if (has_child()) {
-            element_inst_->notify(ui_element_notify_visibility_changed, (t_size)!!show, nullptr, 0);
+            element_inst_->notify(ui_element_notify_visibility_changed, (t_size) !!show, nullptr, 0);
         }
     }
 
@@ -552,8 +719,85 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         if (has_child()) {
             CRect rc;
             GetClientRect(&rc);
-            ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, 0, 0, rc.Width(), rc.Height(), SWP_NOMOVE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
+            if (is_cfg_no_frame()) {
+                InflateRect(&rc, -2, -2);
+            }
+            ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, rc.left, rc.top, rc.Width(), rc.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
         }
+    }
+
+    LRESULT on_nc_calc_size(BOOL calc_valid_rect, LPARAM param) {
+        if (!calc_valid_rect || !is_cfg_no_frame()) {
+            SetMsgHandled(FALSE);
+        } else {
+            LPNCCALCSIZE_PARAMS lpnccs_params = reinterpret_cast<LPNCCALCSIZE_PARAMS>(param);
+            adjust_maximized_client_rect(lpnccs_params->rgrc);
+        }
+        return 0;
+    }
+
+    UINT on_nc_hittest(CPoint point) {
+        if (!is_cfg_no_frame()) {
+            SetMsgHandled(FALSE);
+            return 0;
+        }
+
+        UINT res = HTCLIENT;
+
+        if (!get_cfg_no_frame().resizable) {
+            return res;
+        }
+
+        const int cx = kWindowFrameX;
+        const int cy = kWindowFrameY;
+
+        RECT rect_window{};
+        WIN32_OP_D(GetWindowRect(&rect_window));
+
+        // left & right
+        if (point.x <= rect_window.left + cx) {
+            res = HTLEFT;
+        } else if (point.x >= (rect_window.right - cx)) {
+            res = HTRIGHT;
+        }
+
+        // top & bottom
+        if (point.y <= rect_window.top + cy) {
+            switch (res) {
+                case HTLEFT:
+                    res = HTTOPLEFT;
+                    break;
+                case HTRIGHT:
+                    res = HTTOPRIGHT;
+                    break;
+                default:
+                    res = HTTOP;
+                    break;
+            }
+        } else if (point.y >= (rect_window.bottom - cy)) {
+            switch (res) {
+                case HTLEFT:
+                    res = HTBOTTOMLEFT;
+                    break;
+                case HTRIGHT:
+                    res = HTBOTTOMRIGHT;
+                    break;
+                default:
+                    res = HTBOTTOM;
+                    break;
+            }
+        }
+
+        return res;
+    }
+
+    BOOL on_nc_active(BOOL active) {
+        if (is_cfg_no_frame() && !flowin_utils::is_composition_enabled()) {
+            return TRUE;
+        }
+
+        SetMsgHandled(FALSE);
+        return FALSE;
     }
 
     LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/) {
@@ -595,6 +839,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     ui_element_instance_ptr element_inst_;
     flowin_ui_element_instance_callback_impl::ptr callback_;
     cfg_flowin_host::sp_t host_config_;
+    bool is_perform_drag_ = false;
+    POINT drag_point_;
 };
 
 class ui_element_flowin_host_impl : public ui_element_impl<flowin_host> {
