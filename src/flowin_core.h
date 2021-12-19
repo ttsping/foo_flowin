@@ -17,6 +17,7 @@ class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_t
     void show_startup_flowin();
     bool is_flowin_alive(const GUID& host_guid);
     void set_instance_callback(ui_element_instance_callback_ptr callback) { callback_ = callback; }
+    void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size);
 
     ui_element_instance_ptr create_flowin_host(const GUID& inst_guid = pfc::guid_null);
     void remove_flowin_host(const GUID& host_guid, bool delete_config = false);

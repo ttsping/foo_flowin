@@ -35,9 +35,7 @@ void flowin_core::initalize() {
 }
 
 void flowin_core::finalize() {
-    flowin_hosts_.enumerate([this](const ui_element_instance_ptr& ptr) {
-        this->send_message(ptr->get_wnd(), WM_CLOSE);
-    });
+    flowin_hosts_.enumerate([this](const ui_element_instance_ptr& ptr) { this->send_message(ptr->get_wnd(), WM_CLOSE); });
     flowin_hosts_.remove_all();
     callback_.reset();
     dummy_element_inst_.reset();
@@ -59,6 +57,14 @@ bool flowin_core::is_flowin_alive(const GUID& host_guid) {
         }
     }
     return false;
+}
+
+void flowin_core::notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) {
+    t_size n, m = flowin_hosts_.get_count();
+    for (n = 0; n < m; ++n) {
+        auto& inst = flowin_hosts_[n];
+        inst->notify(p_what, p_param1, p_param2, p_param2size);
+    }
 }
 
 ui_element_instance_ptr flowin_core::create_flowin_host(const GUID& inst_guid /*= pfc::guid_null*/) {

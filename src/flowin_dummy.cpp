@@ -5,7 +5,9 @@
 
 namespace {
 
-class flowin_dummy_ui_element : public ui_element_instance, public CWindowImpl<flowin_dummy_ui_element> {
+typedef CWinTraits<WS_POPUP, 0> CDummpyFlowinTraits;
+
+class flowin_dummy_ui_element : public ui_element_instance, public CWindowImpl<flowin_dummy_ui_element, CWindow, CDummpyFlowinTraits> {
   public:
     DECLARE_WND_CLASS(TEXT("{A2143483-196F-45A4-81F3-621ABF577E69}"));
 
@@ -24,7 +26,9 @@ class flowin_dummy_ui_element : public ui_element_instance, public CWindowImpl<f
     static void g_get_name(pfc::string_base& out) { out = "dummp_dui_window"; }
     static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
     static const char* g_get_description() { return ""; }
-    void notify(const GUID&, t_size, const void*, t_size) {}
+    void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) {
+        flowin_core::get()->notify(p_what, p_param1, p_param2, p_param2size);
+    }
 
     void initialize_window(HWND parent) {
         ::ShowWindow(parent, SW_HIDE);
