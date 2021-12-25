@@ -123,7 +123,13 @@ class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
 
         uButton_SetCheck(m_hWnd, IDC_RESIZABLE, cfg_->cfg_no_frame.resizable);
         uButton_SetCheck(m_hWnd, IDC_MOVABLE, cfg_->cfg_no_frame.draggable);
-        uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, cfg_->cfg_no_frame.shadowed);
+        if (cfg_->cfg_no_frame.legacy_no_frame) {
+            uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, false);
+            GetDlgItem(IDC_SHOW_SHADOW).EnableWindow(FALSE);
+        } else {
+            uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, cfg_->cfg_no_frame.shadowed);
+        }
+
         return TRUE;
     }
 
@@ -209,6 +215,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MSG_WM_NCCALCSIZE(on_nc_calc_size)
         MSG_WM_NCHITTEST(on_nc_hittest)
         MSG_WM_NCACTIVATE(on_nc_active)
+        MSG_WM_SETCURSOR(on_set_cursor)
         MSG_WM_TIMER(on_timer)
         MSG_WM_CLOSE(on_close)
         MSG_WM_DESTROY(on_destroy)
@@ -275,6 +282,32 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     bool is_cfg_no_frame() const { return !host_config_->show_caption; }
 
     auto& get_cfg_no_frame() const { return host_config_->cfg_no_frame; }
+
+    bool use_legacy_no_frame() const {
+        static int s_is_win11 = 0;
+        if (s_is_win11 == -1) {
+            // run once
+            s_is_win11 = 0;
+            // not future-proof
+            typedef NTSTATUS(WINAPI * RtlGetVersionPtr)(LPOSVERSIONINFOEXW);
+            OSVERSIONINFOEXW ovi{};
+            if (RtlGetVersionPtr fun = (RtlGetVersionPtr)GetProcAddress(GetModuleHandleA("ntdll"), "RtlGetVersion")) {
+                ovi.dwOSVersionInfoSize = sizeof(ovi);
+                fun(&ovi);
+                if ((double)ovi.dwMajorVersion >= 10 && ovi.dwBuildNumber >= 22000) {
+                    s_is_win11 = 1;
+                } else {
+                    s_is_win11 = 0;
+                }
+            }
+        }
+
+        bool ret = s_is_win11 != 1 || !flowin_utils::is_composition_enabled();
+        if (host_config_) {
+            host_config_->cfg_no_frame.legacy_no_frame = ret ? 1 : 0;
+        }
+        return ret;
+    }
 
     bool is_active() const { return GetActiveWindow() == m_hWnd; }
 
@@ -570,21 +603,20 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void configure_window_style() {
         // frame
+        const DWORD rel_style = WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
         if (is_cfg_no_frame()) {
             // window style
-            if (flowin_utils::is_composition_enabled()) {
-                ModifyStyle(0, WS_CAPTION);
+            if (use_legacy_no_frame()) {
+                ModifyStyle(rel_style, 0);
             } else {
-                ModifyStyle(WS_CAPTION, 0);
+                ModifyStyle(0, rel_style);
+                show_no_frame_shadow(get_cfg_no_frame().shadowed);
             }
-            // show shadow?
-            show_no_frame_shadow(get_cfg_no_frame().shadowed);
-
-            // HACK 
+            // HACK
             // TODO snap in no frame mode not fully supported
             kSnapHideEdgeWidth = 2;
         } else {
-            ModifyStyle(0, WS_CAPTION);
+            ModifyStyle(0, rel_style);
             show_no_frame_shadow(false);
             kSnapHideEdgeWidth = 8;
         }
@@ -596,6 +628,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
   private:
     int on_create(LPCREATESTRUCT lpcs) {
         (VOID) GetSystemMenu(FALSE);
+        (VOID) use_legacy_no_frame();
 
         if (IsRectEmpty(&host_config_->window_rect)) {
             CenterWindow(core_api::get_main_window());
@@ -771,7 +804,9 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     }
 
     LRESULT on_nc_calc_size(BOOL calc_valid_rect, LPARAM param) {
-        if (!calc_valid_rect || !is_cfg_no_frame()) {
+        if (!is_cfg_no_frame()) {
+            SetMsgHandled(FALSE);
+        } else if (!calc_valid_rect || use_legacy_no_frame()) {
             SetMsgHandled(FALSE);
         } else {
             LPNCCALCSIZE_PARAMS lpnccs_params = reinterpret_cast<LPNCCALCSIZE_PARAMS>(param);
@@ -842,6 +877,32 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
         SetMsgHandled(FALSE);
         return FALSE;
+    }
+
+    BOOL on_set_cursor(CWindow /*wnd*/, UINT hittest, UINT message) {
+        if (!is_cfg_no_frame() || !use_legacy_no_frame()) {
+            SetMsgHandled(FALSE);
+            return FALSE;
+        }
+
+        if (hittest == HTCLIENT) {
+            SetMsgHandled(FALSE);
+            return FALSE;
+        }
+
+        if (hittest == HTTOP || hittest == HTBOTTOM) {
+            SetCursor(LoadCursor(NULL, IDC_SIZENS));
+        } else if (hittest == HTLEFT || hittest == HTRIGHT) {
+            SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+        } else if (hittest == HTTOPLEFT || hittest == HTBOTTOMRIGHT) {
+            SetCursor(LoadCursor(NULL, IDC_SIZENWSE));
+        } else if (hittest == HTTOPRIGHT || hittest == HTBOTTOMLEFT) {
+            SetCursor(LoadCursor(NULL, IDC_SIZENESW));
+        } else {
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+        }
+
+        return TRUE;
     }
 
     void on_timer(UINT_PTR id) {

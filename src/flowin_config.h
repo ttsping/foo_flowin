@@ -40,7 +40,8 @@ class cfg_flowin_host {
         bool resizable : 1;
         bool draggable : 1;
         bool shadowed : 1;
-        uint8_t reserved[3];
+        uint8_t legacy_no_frame; // internal use.
+        uint8_t reserved[2];
     } cfg_no_frame;
     uint32_t reserved[19];
     // internal use
