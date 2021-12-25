@@ -25,6 +25,7 @@ void flowin_core::initalize() {
     if (callback_.is_valid() && dummy_element_inst_.is_valid()) {
         return;
     }
+    latest_active_flowin_guid_ = pfc::guid_null;
     service_ptr_t<ui_element> dummy_element;
     if (ui_element::g_find(dummy_element, g_dui_dummy_element_guid)) {
         auto callback = new service_impl_t<flowin_dummy_popup_host_callback>();
@@ -39,6 +40,7 @@ void flowin_core::finalize() {
     flowin_hosts_.remove_all();
     callback_.reset();
     dummy_element_inst_.reset();
+    latest_active_flowin_guid_ = pfc::guid_null;
 }
 
 void flowin_core::show_startup_flowin() {
@@ -58,6 +60,10 @@ bool flowin_core::is_flowin_alive(const GUID& host_guid) {
     }
     return false;
 }
+
+void flowin_core::set_latest_active_flowin(const GUID& host_guid) { latest_active_flowin_guid_ = host_guid; }
+
+GUID flowin_core::get_latest_active_flowin() const { return latest_active_flowin_guid_; }
 
 void flowin_core::notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) {
     t_size n, m = flowin_hosts_.get_count();
@@ -92,6 +98,10 @@ void flowin_core::remove_flowin_host(const GUID& host_guid, bool delete_config /
 
     if (delete_config) {
         cfg_flowin::get()->remove_configuration(host_guid);
+    }
+
+    if (get_latest_active_flowin() == host_guid) {
+        set_latest_active_flowin(pfc::guid_null);
     }
 }
 

@@ -284,7 +284,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     auto& get_cfg_no_frame() const { return host_config_->cfg_no_frame; }
 
     bool use_legacy_no_frame() const {
-        static int s_is_win11 = 0;
+        static int s_is_win11 = -1;
         if (s_is_win11 == -1) {
             // run once
             s_is_win11 = 0;
@@ -358,11 +358,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     t_size host_get_children_count() override { return has_child() ? 1 : 0; }
 
-    void host_bring_to_front(t_size which) override {
-        if (has_child()) {
-            WIN32_OP_D(::BringWindowToTop(element_inst_->get_wnd()));
-        }
-    }
+    void host_bring_to_front(t_size /*which*/) override { bring_window_to_top(); }
 
     void host_replace_child(t_size which) override { callback_->request_replace(host_get_child(which)); }
 
@@ -412,6 +408,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     }
 
     void set_always_on_top(bool on_top) { SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{ 0 }, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE); }
+
+    void bring_window_to_top() { PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top); }
 
     void show_no_frame_shadow(bool show) {
         if (flowin_utils::is_composition_enabled()) {
@@ -548,6 +546,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             } break;
 
             case t_menu_cmd_flowin_bring_to_top: {
+                RestoreFromSnapHidden();
                 set_always_on_top(!host_config_->always_on_top);
                 set_always_on_top(host_config_->always_on_top);
             } break;
@@ -671,7 +670,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
 
         if (!host_config_->always_on_top) {
-            PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top);
+            bring_window_to_top();
         }
 
         return TRUE;
@@ -722,6 +721,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 update_transparency();
             }
         }
+        flowin_core::get()->set_latest_active_flowin(host_config_->guid);
     }
 
     void on_lbutton_up(UINT flags, CPoint point) {
