@@ -70,7 +70,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 break;
             case t_menu_cmd_edit_mode:
                 text = "Edit mode";
-                make_flags(config_->edit_mode, !is_alive);
+                make_flags(config_ && config_->edit_mode, !is_alive);
                 break;
             case t_menu_cmd_destroy_element:
                 text = "Delete";
