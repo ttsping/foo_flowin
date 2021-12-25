@@ -223,6 +223,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MESSAGE_HANDLER_EX(UWM_FLOWIN_REFRESH_CONFIG, on_refresh_config)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_ACTIVE, on_active_flowin)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_UPDATE_TRANSPARENCY, on_update_transparency)
+        MESSAGE_HANDLER_EX(UWM_FLOWIN_REPAINT, on_repaint)
         CHAIN_MSG_MAP(ui_element_instance_host_base)
         CHAIN_MSG_MAP(CSnapWindow<flowin_host>)
     END_MSG_MAP()
@@ -951,6 +952,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
         SetLayeredWindowAttributes(*this, 0, alpha, LWA_ALPHA);
         return TRUE;
+    }
+
+    LRESULT on_repaint(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+        InvalidateRect(nullptr);
+        return 0;
     }
 
   private:

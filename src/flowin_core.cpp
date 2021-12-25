@@ -69,6 +69,9 @@ void flowin_core::notify(const GUID& p_what, t_size p_param1, const void* p_para
     t_size n, m = flowin_hosts_.get_count();
     for (n = 0; n < m; ++n) {
         auto& inst = flowin_hosts_[n];
+        if (p_what == ui_element_notify_colors_changed || p_what == ui_element_notify_font_changed) {
+            post_message(inst->get_wnd(), UWM_FLOWIN_REPAINT);
+        }
         inst->notify(p_what, p_param1, p_param2, p_param2size);
     }
 }

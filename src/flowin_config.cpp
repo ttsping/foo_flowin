@@ -28,6 +28,9 @@ void cfg_flowin_host::reset() {
     transparency = 0;
     transparency_active = 0;
     ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
+    cfg_no_frame.resizable = true;
+    cfg_no_frame.draggable = true;
+
     ZeroMemory(&window_rect, sizeof(window_rect));
     ZeroMemory(&reserved, sizeof(reserved));
 }
