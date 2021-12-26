@@ -7,7 +7,11 @@ namespace {
 
 class flowin_config_menu_node_command : public mainmenu_node_command {
   public:
-    flowin_config_menu_node_command(t_uint32 id, cfg_flowin_host::sp_t cfg = nullptr) : cmd_(id), config_(cfg) {}
+    flowin_config_menu_node_command(t_uint32 id, cfg_flowin_host::sp_t cfg = nullptr) : cmd_(id), config_(cfg), is_active_group_nodes_(false) {
+        if (cfg == nullptr && is_require_config()) {
+            is_active_group_nodes_ = true;
+        }
+    }
     void get_display(pfc::string_base& text, t_uint32& flags) override {
         validate_config();
         bool is_alive = config_ ? flowin_core::get()->is_flowin_alive(config_->guid) : false;
@@ -150,7 +154,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
         t_uint32 flags;
         pfc::string8 name;
         get_display(name, flags);
-        if (!is_require_config()) {
+        if (is_active_group_nodes_ || !is_require_config()) {
             name += pfc::print_guid(guid_dummy);
         } else {
             validate_config();
@@ -191,6 +195,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
   private:
     const t_uint32 cmd_;
     cfg_flowin_host::sp_t config_;
+    bool is_active_group_nodes_;
 };
 
 class active_flowin_node_group : public mainmenu_node_group {
