@@ -150,7 +150,12 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
         t_uint32 flags;
         pfc::string8 name;
         get_display(name, flags);
-        name += pfc::print_guid(config_ ? config_->guid : guid_dummy);
+        if (!is_require_config()) {
+            name += pfc::print_guid(guid_dummy);
+        } else {
+            validate_config();
+            name += pfc::print_guid(config_ ? config_->guid : guid_dummy);
+        }
         return hasher_md5::get()->process_single_guid(name.get_ptr(), name.get_length());
     };
 
@@ -169,6 +174,18 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 }
             });
         }
+    }
+
+    bool is_require_config() {
+        switch (cmd_) {
+            case t_menu_cmd_new_flowin:
+            case t_menu_cmd_show_all:
+            case t_menu_cmd_close_all:
+                return false;
+            default:
+                break;
+        }
+        return true;
     }
 
   private:
