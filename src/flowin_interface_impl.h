@@ -22,6 +22,10 @@ public:
     STDMETHODIMP get_AutoHideWhenSnap(VARIANT_BOOL* pp);
     STDMETHODIMP get_Title(BSTR* pp);
 
+    STDMETHODIMP get_NoFrameResizable(VARIANT_BOOL* pp);
+    STDMETHODIMP get_NoFrameShadow(VARIANT_BOOL* pp);
+    STDMETHODIMP get_NoFrameMovable(VARIANT_BOOL* pp);
+
     STDMETHODIMP put_Left(INT p);
     STDMETHODIMP put_Top(INT p);
     STDMETHODIMP put_Width(INT p);
@@ -33,6 +37,10 @@ public:
     STDMETHODIMP put_SnapToEdge(VARIANT_BOOL p);
     STDMETHODIMP put_AutoHideWhenSnap(VARIANT_BOOL p);
     STDMETHODIMP put_Title(BSTR p);
+
+    STDMETHODIMP put_NoFrameResizable(VARIANT_BOOL p);
+    STDMETHODIMP put_NoFrameShadow(VARIANT_BOOL p);
+    STDMETHODIMP put_NoFrameMovable(VARIANT_BOOL p);
 
     STDMETHODIMP Move(INT x, INT y, INT width, INT height);
 

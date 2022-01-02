@@ -140,6 +140,42 @@ STDMETHODIMP FlowinHostImpl::get_Title(BSTR* pp) {
     return S_OK;
 }
 
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::get_NoFrameResizable(VARIANT_BOOL* pp)
+{
+    if (!pp) {
+        return E_POINTER;
+    }
+    if (!config_) {
+        return E_FAIL;
+    }
+    *pp = TO_VARIANT_BOOL(config_->cfg_no_frame.resizable);
+    return S_OK;
+}
+
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::get_NoFrameShadow(VARIANT_BOOL* pp)
+{
+    if (!pp) {
+        return E_POINTER;
+    }
+    if (!config_) {
+        return E_FAIL;
+    }
+    *pp = TO_VARIANT_BOOL(config_->cfg_no_frame.shadowed);
+    return S_OK;
+}
+
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::get_NoFrameMovable(VARIANT_BOOL* pp)
+{
+    if (!pp) {
+        return E_POINTER;
+    }
+    if (!config_) {
+        return E_FAIL;
+    }
+    *pp = TO_VARIANT_BOOL(config_->cfg_no_frame.draggable);
+    return S_OK;
+}
+
 STDMETHODIMP FlowinHostImpl::put_Left(INT p) {
     HWND wnd = try_get_flowin_window();
     if (wnd == nullptr) {
@@ -312,6 +348,33 @@ STDMETHODIMP FlowinHostImpl::put_Title(BSTR p) {
         SetWindowTextW(hwnd, p);
     }
 
+    return S_OK;
+}
+
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::put_NoFrameResizable(VARIANT_BOOL p)
+{
+    if (!config_) {
+        return E_FAIL;
+    }
+    config_->cfg_no_frame.resizable = p ? true : false;
+    return S_OK;
+}
+
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::put_NoFrameShadow(VARIANT_BOOL p)
+{
+    if (!config_) {
+        return E_FAIL;
+    }
+    config_->cfg_no_frame.shadowed = p ? true : false;
+    return S_OK;
+}
+
+STDMETHODIMP_(HRESULT __stdcall) FlowinHostImpl::put_NoFrameMovable(VARIANT_BOOL p)
+{
+    if (!config_) {
+        return E_FAIL;
+    }
+    config_->cfg_no_frame.draggable = p ? true : false;
     return S_OK;
 }
 

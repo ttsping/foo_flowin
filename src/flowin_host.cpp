@@ -807,7 +807,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             CRect rc;
             GetClientRect(&rc);
             if (is_cfg_no_frame()) {
-                InflateRect(&rc, -2, -2);
+                //InflateRect(&rc, -2, -2);
             }
             ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, rc.left, rc.top, rc.Width(), rc.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
         }

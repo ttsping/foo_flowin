@@ -30,12 +30,20 @@ __interface IFlowinHost : IDispatch
     [propget] STDMETHOD(AutoHideWhenSnap)([out, retval]VARIANT_BOOL* pp);
     [propget] STDMETHOD(Title)([out, retval]BSTR* pp);
 
+    [propget] STDMETHOD(NoFrameResizable)([out, retval]VARIANT_BOOL* pp);
+    [propget] STDMETHOD(NoFrameShadow)([out, retval]VARIANT_BOOL* pp);
+    [propget] STDMETHOD(NoFrameMovable)([out, retval]VARIANT_BOOL* pp);
+
     [propput] STDMETHOD(Show)(VARIANT_BOOL p);
     [propput] STDMETHOD(AlwaysOnTop)(VARIANT_BOOL p);
     [propput] STDMETHOD(NoFrame)(VARIANT_BOOL p);
     [propput] STDMETHOD(SnapToEdge)(VARIANT_BOOL p);
     [propput] STDMETHOD(AutoHideWhenSnap)(VARIANT_BOOL p);
     [propput] STDMETHOD(Title)(BSTR p);
+
+    [propput] STDMETHOD(NoFrameResizable)(VARIANT_BOOL p);
+    [propput] STDMETHOD(NoFrameShadow)(VARIANT_BOOL p);
+    [propput] STDMETHOD(NoFrameMovable)(VARIANT_BOOL p);
 
     STDMETHOD(Move)(INT x, INT y, [defaultvalue(-1)]INT width, [defaultvalue(-1)]INT height);
 };
