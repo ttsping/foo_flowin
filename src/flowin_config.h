@@ -63,6 +63,7 @@ class cfg_flowin : public cfg_var {
 
     void register_callback(cfg_flowin_callback::wp_t cb);
 
+    cfg_flowin_host::sp_t find_configuration(const GUID& host_guid);
     cfg_flowin_host::sp_t add_or_find_configuration(const GUID& host_guid);
     void remove_configuration(const GUID& host_guid);
 

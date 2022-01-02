@@ -64,6 +64,7 @@ enum t_flowin_menu_command_id {
     t_menu_cmd_flowin_reset_position,
     t_menu_cmd_flowin_bring_to_top,
     t_menu_cmd_flowin_identify,
+    t_menu_cmd_flowin_show_info,
 };
 
 enum t_flowin_user_message {

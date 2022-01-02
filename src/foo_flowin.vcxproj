@@ -96,10 +96,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>flowin_exports.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(USERPROFILE)\Desktop\foobar2000\components\"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>foo_flowin.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -121,10 +125,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>flowin_exports.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(USERPROFILE)\Desktop\foobar2000\components\"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>foo_flowin.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Beta|Win32'">
     <ClCompile>
@@ -147,16 +155,23 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>flowin_exports.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(USERPROFILE)\Desktop\foobar2000\components\"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>foo_flowin.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="com_utils.h" />
     <ClInclude Include="flowin_callback.h" />
     <ClInclude Include="flowin_config.h" />
     <ClInclude Include="flowin_core.h" />
     <ClInclude Include="flowin_defines.h" />
+    <ClInclude Include="flowin_interface.h" />
+    <ClInclude Include="flowin_interface_impl.h" />
     <ClInclude Include="flowin_utils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
@@ -165,9 +180,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="exports.cpp" />
     <ClCompile Include="flowin_config.cpp" />
     <ClCompile Include="flowin_core.cpp" />
     <ClCompile Include="flowin_host.cpp" />
+    <ClCompile Include="flowin_interface_impl.cpp" />
     <ClCompile Include="flowin_utils.cpp" />
     <ClCompile Include="initquit.cpp" />
     <ClCompile Include="mainmenu.cpp" />
@@ -181,6 +198,7 @@
   <ItemGroup>
     <None Include="..\.clang-format" />
     <None Include="..\cpp.hint" />
+    <None Include="flowin_exports.def" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dist\sdk\foobar2000\foobar2000_component_client\foobar2000_component_client.vcxproj">
@@ -201,6 +219,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_flowin.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="foo_flowin.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

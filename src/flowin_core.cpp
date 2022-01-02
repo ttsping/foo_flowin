@@ -46,16 +46,26 @@ void flowin_core::finalize() {
 void flowin_core::show_startup_flowin() {
     cfg_flowin::get()->enum_configuration([this](cfg_flowin_host::sp_t host_config) {
         if (host_config->show_on_startup) {
-            this->create_flowin_host(host_config->guid);
+            this->create_flowin(host_config->guid);
         }
     });
 }
 
+void flowin_core::register_flowin(HWND hwnd, const GUID& guid) { alive_flowins_[hwnd] = guid; }
+
+void flowin_core::unregister_flowin(HWND hwnd) {
+    for (auto iter = alive_flowins_.begin(); iter != alive_flowins_.end(); ++iter) {
+        if (iter->first == hwnd) {
+            alive_flowins_.erase(iter);
+            break;
+        }
+    }
+}
+
 bool flowin_core::is_flowin_alive(const GUID& host_guid) {
-    for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
-        auto& inst = flowin_hosts_[n];
-        if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
-            return !!::IsWindow(inst->get_wnd());
+    for (auto& iter : alive_flowins_) {
+        if (iter.second == host_guid) {
+            return true;
         }
     }
     return false;
@@ -76,7 +86,53 @@ void flowin_core::notify(const GUID& p_what, t_size p_param1, const void* p_para
     }
 }
 
-ui_element_instance_ptr flowin_core::create_flowin_host(const GUID& inst_guid /*= pfc::guid_null*/) {
+GUID flowin_core::get_flowin_by_child(HWND child) {
+    for (auto& iter : alive_flowins_) {
+        if (IsWindowChildOf(child, iter.first)) {
+            return iter.second;
+        }
+    }
+    return pfc::guid_null;
+}
+
+GUID flowin_core::get_flowin_by_guid(const wchar_t* guid) {
+    if (guid == nullptr) {
+        return pfc::guid_null;
+    }
+
+    std::wstring mod_guid{ guid };
+    if (mod_guid.front() != '{') {
+        mod_guid.insert(0, 1, '{');
+    }
+
+    if (mod_guid.back() != '}') {
+        mod_guid.push_back('}');
+    }
+
+    GUID id{};
+    if (SUCCEEDED(CLSIDFromString(mod_guid.data(), &id))) {
+        if (auto sp = cfg_flowin::get()->find_configuration(id)) {
+            return id;
+        }
+    }
+    return pfc::guid_null;
+}
+
+GUID flowin_core::get_flowin_by_name(const wchar_t* name) {
+    if (name == nullptr) {
+        return pfc::guid_null;
+    }
+    GUID id{};
+    pfc::stringcvt::string_utf8_from_wide name8{ name };
+    cfg_flowin::get()->enum_configuration([&](cfg_flowin_host::sp_t config) {
+        if (uStringCompare(name8, config->window_title) == 0) {
+            id = config->guid;
+        }
+    });
+    return id;
+}
+
+ui_element_instance_ptr flowin_core::create_flowin(const GUID& inst_guid /*= pfc::guid_null*/) {
     service_ptr_t<ui_element> host;
     if (ui_element::g_find(host, g_dui_flowin_host_guid)) {
         ui_element_config::ptr config = cfg_flowin::get()->add_or_find_configuration(inst_guid)->build_configuration();
@@ -90,11 +146,12 @@ ui_element_instance_ptr flowin_core::create_flowin_host(const GUID& inst_guid /*
     return nullptr;
 }
 
-void flowin_core::remove_flowin_host(const GUID& host_guid, bool delete_config /*= false*/) {
+void flowin_core::remove_flowin(const GUID& host_guid, bool delete_config /*= false*/) {
     for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
         auto& inst = flowin_hosts_[n];
         if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
             flowin_hosts_.remove_by_idx(n);
+            unregister_flowin(inst->get_wnd());
             break;
         }
     }
@@ -106,6 +163,25 @@ void flowin_core::remove_flowin_host(const GUID& host_guid, bool delete_config /
     if (get_latest_active_flowin() == host_guid) {
         set_latest_active_flowin(pfc::guid_null);
     }
+}
+
+HWND flowin_core::get_flowin_window(const GUID& host_guid) {
+    for (auto& iter : alive_flowins_) {
+        if (iter.second == host_guid) {
+            return iter.first;
+        }
+    }
+    return nullptr;
+}
+
+ui_element_instance_ptr flowin_core::get_flowin_instance(const GUID& host_guid) {
+    for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
+        auto& inst = flowin_hosts_[n];
+        if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
+            return inst;
+        }
+    }
+    return nullptr;
 }
 
 BOOL flowin_core::post_message(HWND wnd, UINT msg, WPARAM wp /*= 0*/, LPARAM lp /*= 0*/) {
@@ -123,21 +199,15 @@ BOOL flowin_core::send_message(HWND wnd, UINT msg, WPARAM wp /*= 0*/, LPARAM lp 
 }
 
 BOOL flowin_core::post_message(const GUID& host_guid, UINT msg, WPARAM wp, LPARAM lp) {
-    for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
-        auto& inst = flowin_hosts_[n];
-        if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
-            return post_message(inst->get_wnd(), msg, wp, lp);
-        }
+    if (HWND hwnd = get_flowin_window(host_guid)) {
+        return post_message(hwnd, msg, wp, lp);
     }
     return FALSE;
 }
 
 BOOL flowin_core::send_message(const GUID& host_guid, UINT msg, WPARAM wp, LPARAM lp) {
-    for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
-        auto& inst = flowin_hosts_[n];
-        if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
-            return send_message(inst->get_wnd(), msg, wp, lp);
-        }
+    if (HWND hwnd = get_flowin_window(host_guid)) {
+        return send_message(hwnd, msg, wp, lp);
     }
     return FALSE;
 }

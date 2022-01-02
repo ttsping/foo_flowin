@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity type="win32" name="flowin" version="1.0.0.0" />
+  <file name="foo_flowin.dll">
+    <comClass clsid="{1a367c90-e445-4585-88e5-9b6b73388dcb}" progid="flowin" threadingModel="Both" />
+    <typelib tlbid="{169e3e13-6f3f-3ecb-bc6e-407ca3480c56}" version="1.0" helpdir="" />
+  </file>
+</assembly>

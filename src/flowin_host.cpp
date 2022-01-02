@@ -470,7 +470,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
     }
 
-    void execute_context_menu(int cmd) {
+    void execute_context_menu(int cmd, int param = 0) {
         switch (cmd) {
             case t_menu_cmd_always_on_top:
                 host_config_->always_on_top = !host_config_->always_on_top;
@@ -482,8 +482,15 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                     host_config_->show_caption = true;
                     configure_window_style();
                 } else {
-                    CNoFrameSettingsDialog dlg(host_config_);
-                    if (dlg.DoModal(*this) == IDOK) {
+                    bool apply_command = true;
+
+                    if (!param) {
+                        CNoFrameSettingsDialog dlg(host_config_);
+                        if (dlg.DoModal(*this) != IDOK) {
+                            apply_command = false;
+                        }
+                    }
+                    if (apply_command) {
                         host_config_->show_caption = false;
                         configure_window_style();
                     }
@@ -519,7 +526,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 pfc::string_formatter msg;
                 msg << " Delete \"" << uGetWindowText(*this).c_str() << "\"?\n You cannot restore it when deleted.";
                 if (uMessageBox(*this, msg, "Warning", MB_OKCANCEL | MB_ICONWARNING) == IDOK) {
-                    fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin_host(this->host_config_->guid, true); });
+                    fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin(this->host_config_->guid, true); });
                 }
             } break;
 
@@ -627,6 +634,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
   private:
     int on_create(LPCREATESTRUCT lpcs) {
+        flowin_core::get()->register_flowin(m_hWnd, host_config_->guid);
+
         (VOID) GetSystemMenu(FALSE);
         (VOID) use_legacy_no_frame();
 
@@ -684,7 +693,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     }
 
     void on_destroy() {
-        flowin_core::get()->remove_flowin_host(host_config_->guid);
+        flowin_core::get()->remove_flowin(host_config_->guid);
         host_config_.reset();
         SetMsgHandled(FALSE);
     }
@@ -921,8 +930,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         SetMsgHandled(FALSE);
     }
 
-    LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/) {
-        execute_context_menu((t_uint32)wp);
+    LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM lp) {
+        execute_context_menu((t_uint32)wp, (int)lp);
         return TRUE;
     }
 

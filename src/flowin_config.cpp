@@ -28,6 +28,7 @@ void cfg_flowin_host::reset() {
     transparency = 0;
     transparency_active = 0;
     ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
+    cfg_no_frame.shadowed = true;
     cfg_no_frame.resizable = true;
     cfg_no_frame.draggable = true;
 
@@ -151,15 +152,23 @@ void cfg_flowin::register_callback(cfg_flowin_callback::wp_t cb) {
     callbacks_.push_back(cb);
 }
 
-cfg_flowin_host::sp_t cfg_flowin::add_or_find_configuration(const GUID& host_guid) {
+cfg_flowin_host::sp_t cfg_flowin::find_configuration(const GUID& host_guid) {
     core_api::ensure_main_thread();
-
     for (auto& config : host_config_list_) {
         if (config->guid == host_guid) {
             return config;
         }
     }
+    return nullptr;
+}
 
+cfg_flowin_host::sp_t cfg_flowin::add_or_find_configuration(const GUID& host_guid) {
+    core_api::ensure_main_thread();
+    for (auto& config : host_config_list_) {
+        if (config->guid == host_guid) {
+            return config;
+        }
+    }
     auto cfg = new_host_configuration();
     CoCreateGuid(&cfg->guid);
     host_config_list_.push_back(cfg);
