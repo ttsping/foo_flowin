@@ -67,7 +67,7 @@ public:
     virtual ~FlowinControlImpl();
 
     // IFlowinControl
-    STDMETHODIMP FindById(UINT window_id, IFlowinHost** pp);
+    STDMETHODIMP FindByChild(UINT Child_id, IFlowinHost** pp);
     STDMETHODIMP FindByName(BSTR window_title, IFlowinHost** pp);
     STDMETHODIMP FindByGuid(BSTR host_guid, IFlowinHost** pp);
 };

@@ -407,12 +407,12 @@ FlowinControlImpl::FlowinControlImpl() {}
 
 FlowinControlImpl::~FlowinControlImpl() {}
 
-STDMETHODIMP FlowinControlImpl::FindById(UINT window_id, IFlowinHost** pp) {
+STDMETHODIMP FlowinControlImpl::FindByChild(UINT child_id, IFlowinHost** pp) {
     if (pp == nullptr) {
         return E_POINTER;
     }
 
-    GUID host_guid = flowin_core::get()->get_flowin_by_child(reinterpret_cast<HWND>(window_id));
+    GUID host_guid = flowin_core::get()->get_flowin_by_child(reinterpret_cast<HWND>(child_id));
     if (host_guid == pfc::guid_null) {
         return E_FAIL;
     }

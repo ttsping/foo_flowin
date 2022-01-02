@@ -56,7 +56,7 @@ __interface IFlowinHost : IDispatch
 ]
 __interface IFlowinControl : IDispatch
 {
-    STDMETHOD(FindById)(UINT window_id, [out, retval]IFlowinHost** pp);
+    STDMETHOD(FindByChild)(UINT child_id, [out, retval]IFlowinHost** pp);
     STDMETHOD(FindByName)(BSTR window_title, [out, retval]IFlowinHost** pp);
     STDMETHOD(FindByGuid)(BSTR host_guid, [out, retval]IFlowinHost** pp);
 };
