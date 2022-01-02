@@ -35,3 +35,5 @@ ipch/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+dlldata.c
+vc140.*
