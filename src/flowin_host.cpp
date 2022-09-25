@@ -661,8 +661,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     int on_create(LPCREATESTRUCT lpcs) {
         flowin_core::get()->register_flowin(m_hWnd, host_config_->guid);
 
-        auto api = ui_config_manager::get();
-        if (api.is_valid() && api->is_dark_mode()) {
+        ui_config_manager::ptr api;
+        if (ui_config_manager::tryGet(api) && api->is_dark_mode()) {
             dark_mode_hooks_.AddDialog(m_hWnd);
             dark_mode_hooks_.SetDark(true);
         }
@@ -724,7 +724,11 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void on_paint(CDCHandle /*dc*/) {
         CPaintDC dc(*this);
-        dc.SetTextColor(GetSysColor(COLOR_BTNTEXT));
+        t_ui_color text_color;
+        if (!callback_->query_color(ui_color_text, text_color)) {
+            text_color = GetSysColor(COLOR_BTNTEXT);
+        }
+        dc.SetTextColor(text_color);
         dc.SetBkMode(TRANSPARENT);
         SelectObjectScope scope(dc, (HGDIOBJ)callback_->query_font_ex(ui_font_default));
         CRect rc;
@@ -737,7 +741,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         GetClientRect(&rc);
         CBrush brush;
         t_ui_color background_color;
-        if (!is_cfg_no_frame() || !callback_->query_color(ui_color_background, background_color)) {
+        if (!callback_->query_color(ui_color_background, background_color)) {
             background_color = GetSysColor(COLOR_BTNFACE);
         }
         brush.CreateSolidBrush(background_color);
@@ -994,8 +998,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     }
 
     LRESULT on_ui_color_changed(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
-        auto api = ui_config_manager::get();
-        if (api.is_valid()) {
+        ui_config_manager::ptr api;
+        if (ui_config_manager::tryGet(api)) {
             dark_mode_hooks_.SetDark(api->is_dark_mode());
         }
         return 0;
