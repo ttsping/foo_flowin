@@ -59,6 +59,7 @@ enum t_flowin_menu_command_id {
     t_menu_cmd_show_flowin_on_startup,
     t_menu_cmd_flowin_custom_title,
     t_menu_cmd_flowin_no_frame,
+    t_menu_cmd_show_in_taskbar,
     t_menu_cmd_flowin_pseudo_transparent,
     t_menu_cmd_flowin_transparency,
     t_menu_cmd_flowin_reset_position,

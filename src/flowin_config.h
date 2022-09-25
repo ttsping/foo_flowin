@@ -43,7 +43,9 @@ class cfg_flowin_host {
         uint8_t legacy_no_frame; // internal use.
         uint8_t reserved[2];
     } cfg_no_frame;
-    uint32_t reserved[19];
+    bool show_in_taskbar;
+    bool bool_dummy[3];
+    uint32_t reserved[18];
     // internal use
     bool edit_mode;
 

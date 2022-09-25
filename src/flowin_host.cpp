@@ -313,6 +313,21 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return ret;
     }
 
+    void show_or_hide_in_taskbar(bool show) {
+        try {
+            CoInitializeScope scope;
+            ITaskbarListPtr taskbar;
+            if (SUCCEEDED(taskbar.CreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER))) {
+                if (!show) {
+                    taskbar->DeleteTab(*this);
+                } else {
+                    taskbar->AddTab(*this);
+                }
+            }
+        } catch (std::exception&) {
+        }
+    }
+
     bool is_active() const { return GetActiveWindow() == m_hWnd; }
 
     void set_configuration(ui_element_config::ptr config) override {
@@ -462,6 +477,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     void build_context_menu(HMENU menu, bool sys_menu = true) {
         insert_menu(menu, t_menu_cmd_always_on_top, L"Always on top", true, host_config_->always_on_top);
         insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No frame", true, !host_config_->show_caption);
+        insert_menu(menu, t_menu_cmd_show_in_taskbar, L"Show in the taskbar", true, host_config_->show_in_taskbar);
         insert_menu(menu, t_menu_cmd_snap_to_edge, L"Snap to screen edge", true, host_config_->enable_snap);
         insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap, host_config_->enable_autohide_when_snapped);
         insert_menu(menu, t_menu_cmd_edit_mode, L"Edit mode", true, host_config_->edit_mode);
@@ -498,6 +514,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                         configure_window_style();
                     }
                 }
+                break;
+
+            case t_menu_cmd_show_in_taskbar:
+                host_config_->show_in_taskbar = !host_config_->show_in_taskbar;
+                show_or_hide_in_taskbar(host_config_->show_in_taskbar);
+                configure_window_style();
                 break;
 
             case t_menu_cmd_snap_to_edge:
@@ -626,7 +648,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
             // TODO snap in no frame mode not fully supported
             kSnapHideEdgeWidth = 2;
         } else {
-            ModifyStyle(0, rel_style);
+            ModifyStyle(!host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0, rel_style | (host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0));
             show_no_frame_shadow(false);
             kSnapHideEdgeWidth = 8;
         }
@@ -673,15 +695,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         enable_window_snap_ = host_config_->enable_snap;
         enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
 
-        // TODO configurable?
-        // remove icon from taskbar
-        try {
-            CoInitializeScope scope;
-            ITaskbarListPtr taskbar;
-            if (SUCCEEDED(taskbar.CreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER))) {
-                taskbar->DeleteTab(*this);
-            }
-        } catch (std::exception&) {
+        if (!host_config_->show_in_taskbar) {
+            show_or_hide_in_taskbar(false);
         }
 
         if (is_transparency_enabled()) {
