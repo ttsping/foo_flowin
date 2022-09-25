@@ -197,14 +197,14 @@ void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort) 
     }
 
     try {
-        t_size ver = t_version_current;
+        uint32_t ver = t_version_current;
         p_stream->write_lendian_t(ver, p_abort);
         p_stream->write_object_t(show_debug_log, p_abort);
         /*
         * flowin host configuration layout
         | total number | size | data | size | data | ... |
         */
-        t_size n, m = host_config_list_.size();
+        uint32_t n, m = (uint32_t)host_config_list_.size();
         // number
         p_stream->write_lendian_t(m, p_abort);
         for (n = 0; n < m; ++n) {
@@ -213,7 +213,7 @@ void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort) 
             stream_writer_buffer_simple writer;
             cfg->get_data_raw(&writer, p_abort);
             // size
-            p_stream->write_lendian_t(writer.m_buffer.get_size(), p_abort);
+            p_stream->write_lendian_t((uint32_t)writer.m_buffer.get_size(), p_abort);
             // data
             p_stream->write(writer.m_buffer.get_ptr(), writer.m_buffer.get_size(), p_abort);
         }
@@ -232,10 +232,10 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
             case t_version_011:
             case t_version_010: {
                 p_stream->read_lendian_t(show_debug_log, p_abort);
-                t_size n, m = 0;
+                uint32_t n, m = 0;
                 p_stream->read_lendian_t(m, p_abort);
                 for (n = 0; n < m; ++n) {
-                    t_size data_size = 0;
+                    uint32_t data_size = 0;
                     p_stream->read_lendian_t(data_size, p_abort);
                     auto cfg = new_host_configuration();
                     cfg->set_data_raw(p_stream, data_size, p_abort);
