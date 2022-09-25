@@ -757,7 +757,8 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void on_mouse_move(UINT flags, CPoint point) {
         if ((flags & MK_MBUTTON) && is_perform_drag_) {
-            POINT pt = GetCursorPos();
+            POINT pt{};
+            GetCursorPos(&pt);
             RECT rect;
             WIN32_OP_D(GetWindowRect(&rect));
             OffsetRect(&rect, pt.x - drag_point_.x, pt.y - drag_point_.y);

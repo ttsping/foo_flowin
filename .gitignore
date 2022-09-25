@@ -4,6 +4,7 @@
 [Tt]emp/
 .vs/
 ipch/
+*tlog/
 *_i.c
 *_p.c
 *_i.h
@@ -35,5 +36,6 @@ ipch/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+*.recipe
 dlldata.c
 vc140.*
