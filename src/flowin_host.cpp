@@ -10,7 +10,9 @@
 #include "helpers/atl-misc.h"
 #include "libPPUI/win32_utility.h"
 #include "flowin_utils.h"
+#include <libPPUI/DarkMode.h>
 #include "resource.h"
+
 #pragma comment(lib, "dwmapi.lib")
 
 _COM_SMARTPTR_TYPEDEF(ITaskbarList, __uuidof(ITaskbarList));
@@ -224,6 +226,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         MESSAGE_HANDLER_EX(UWM_FLOWIN_ACTIVE, on_active_flowin)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_UPDATE_TRANSPARENCY, on_update_transparency)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_REPAINT, on_repaint)
+        MESSAGE_HANDLER_EX(UWM_FLOWIN_COLOR_CHANGED, on_ui_color_changed)
         CHAIN_MSG_MAP(ui_element_instance_host_base)
         CHAIN_MSG_MAP(CSnapWindow<flowin_host>)
     END_MSG_MAP()
@@ -636,6 +639,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     int on_create(LPCREATESTRUCT lpcs) {
         flowin_core::get()->register_flowin(m_hWnd, host_config_->guid);
 
+        auto api = ui_config_manager::get();
+        if (api.is_valid() && api->is_dark_mode()) {
+            dark_mode_hooks_.AddDialog(m_hWnd);
+            dark_mode_hooks_.SetDark(true);
+        }
+
         (VOID) GetSystemMenu(FALSE);
         (VOID) use_legacy_no_frame();
 
@@ -969,6 +978,14 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return 0;
     }
 
+    LRESULT on_ui_color_changed(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+        auto api = ui_config_manager::get();
+        if (api.is_valid()) {
+            dark_mode_hooks_.SetDark(api->is_dark_mode());
+        }
+        return 0;
+    }
+
   private:
     // fix me. not standard impl
     ui_element_config::ptr dummy_config_;
@@ -980,6 +997,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     const int kTransparencyTimerID = 0x1001;
     UINT_PTR transparency_timer_ = 0;
     int32_t tranparency_intermediate_ = -1;
+    DarkMode::CHooks dark_mode_hooks_;
 };
 
 class ui_element_flowin_host_impl : public ui_element_impl<flowin_host> {
