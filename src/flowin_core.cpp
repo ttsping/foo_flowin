@@ -36,7 +36,13 @@ void flowin_core::initalize() {
 }
 
 void flowin_core::finalize() {
-    flowin_hosts_.enumerate([this](const ui_element_instance_ptr& ptr) { this->send_message(ptr->get_wnd(), WM_CLOSE); });
+    std::vector<HWND> host_wnds;
+    flowin_hosts_.enumerate([&](const ui_element_instance_ptr& ptr) { host_wnds.push_back(ptr->get_wnd()); });
+    for (auto& hwnd: host_wnds)
+    {
+        send_message(hwnd, WM_CLOSE);
+    }
+
     flowin_hosts_.remove_all();
     callback_.reset();
     dummy_element_inst_.reset();
