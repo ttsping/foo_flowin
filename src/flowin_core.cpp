@@ -161,8 +161,8 @@ void flowin_core::remove_flowin(const GUID& host_guid, bool delete_config /*= fa
     for (t_size n = 0, m = flowin_hosts_.get_count(); n < m; ++n) {
         auto& inst = flowin_hosts_[n];
         if (cfg_flowin_host::cfg_get_guid(inst->get_configuration()) == host_guid) {
-            flowin_hosts_.remove_by_idx(n);
             unregister_flowin(inst->get_wnd());
+            flowin_hosts_.remove_by_idx(n);
             break;
         }
     }
