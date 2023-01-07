@@ -32,6 +32,11 @@ class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog> {
 
   private:
     BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+        ui_config_manager::ptr api;
+        if (ui_config_manager::tryGet(api)) {
+            dark_mode_hooks_.AddDialogWithControls(m_hWnd);
+            dark_mode_hooks_.SetDark(api->is_dark_mode());
+        }
         CenterWindow(GetParent());
         ::uSetDlgItemText(*this, IDC_EDIT_CUSTOM_TITLE, title_);
         return TRUE;
@@ -46,6 +51,7 @@ class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog> {
 
   private:
     pfc::string8& title_;
+    DarkMode::CHooks dark_mode_hooks_;
 };
 
 class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
@@ -63,6 +69,11 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
 
   private:
     BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+        ui_config_manager::ptr api;
+        if (ui_config_manager::tryGet(api)) {
+            dark_mode_hooks_.AddDialogWithControls(m_hWnd);
+            dark_mode_hooks_.SetDark(api->is_dark_mode());
+        }
         CenterWindow(GetParent());
         track_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY));
         track_ctrl_.SetRange(0, 100);
@@ -101,6 +112,7 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
     HWND window_;
     CTrackBarCtrl track_ctrl_;
     CTrackBarCtrl track_hover_ctrl_;
+    DarkMode::CHooks dark_mode_hooks_;
 };
 
 class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
@@ -116,6 +128,11 @@ class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
 
   private:
     BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+        ui_config_manager::ptr api;
+        if (ui_config_manager::tryGet(api)) {
+            dark_mode_hooks_.AddDialogWithControls(m_hWnd);
+            dark_mode_hooks_.SetDark(api->is_dark_mode());
+        }
         CenterWindow(GetParent());
 
         pfc::string8 tips_fmt, tips;
@@ -146,6 +163,7 @@ class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
 
   private:
     cfg_flowin_host::sp_t cfg_;
+    DarkMode::CHooks dark_mode_hooks_;
 };
 
 typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME, 0> CFlowinTraits;
