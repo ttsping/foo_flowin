@@ -217,7 +217,8 @@
       <ModuleDefinitionFile>flowin_exports.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(USERPROFILE)\Desktop\foobar2000v2\$(Platform)\foobar2000\components\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>foo_flowin.manifest</AdditionalManifestFiles>

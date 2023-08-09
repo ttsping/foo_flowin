@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Chinese (Simplified, PRC) resources
+// Chinese (Simplified, China) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
@@ -74,17 +74,18 @@ BEGIN
     CONTROL         "",IDC_SLIDER_TRANSPARENCY_HOVER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | TBS_TOOLTIPS | WS_TABSTOP,100,33,148,15
 END
 
-IDD_NO_FRAME_SETTING DIALOGEX 0, 0, 309, 86
+IDD_NO_FRAME_SETTING DIALOGEX 0, 0, 309, 112
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,198,65,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,252,65,50,14
-    LTEXT           "tips: You can restore the window frame by uncheck the main menu option: View -> Flowin -> %s -> No frame",IDC_NO_FRAME_TIPS,7,43,242,20
-    GROUPBOX        "No frame options",IDC_STATIC,7,7,295,31
-    CONTROL         "Resizable",IDC_RESIZABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,21,46,10
-    CONTROL         "Shadow",IDC_SHOW_SHADOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,76,20,41,10
-    CONTROL         "Movable (via middle mouse button)",IDC_MOVABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,139,20,127,10
+    DEFPUSHBUTTON   "OK",IDOK,198,91,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,252,91,50,14
+    LTEXT           "tips: You can restore the window frame by uncheck the main menu option: \nView -> Flowin -> %s -> No frame",IDC_NO_FRAME_TIPS,10,69,292,20
+    GROUPBOX        "No frame options",IDC_STATIC,7,7,295,58
+    CONTROL         "Resizable (extra 2 pixel border)",IDC_RESIZABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,21,117,10
+    CONTROL         "Shadow",IDC_SHOW_SHADOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,50,41,10
+    CONTROL         "Movable (via middle mouse button)",IDC_MOVABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,35,127,10
 END
 
 
@@ -117,7 +118,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 302
         TOPMARGIN, 7
-        BOTTOMMARGIN, 79
+        BOTTOMMARGIN, 105
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -143,7 +144,7 @@ BEGIN
     0
 END
 
-#endif    // Chinese (Simplified, PRC) resources
+#endif    // Chinese (Simplified, China) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
