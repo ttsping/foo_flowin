@@ -29,6 +29,9 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
             }
         };
 
+        uint32_t flowin_count = 0;
+        cfg_flowin::get()->enum_configuration([&flowin_count](cfg_flowin_host::sp_t) { ++flowin_count; });
+
         flags = 0;
         switch (cmd_) {
             case t_menu_cmd_new_flowin:
@@ -36,9 +39,11 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 break;
             case t_menu_cmd_show_all:
                 text = "Show all";
+                if (flowin_count == 0) flags = mainmenu_commands::flag_disabled;
                 break;
             case t_menu_cmd_close_all:
                 text = "Close all";
+                if (flowin_count == 0) flags = mainmenu_commands::flag_disabled;
                 break;
             case t_menu_cmd_show_flowin:
                 text = "Show";

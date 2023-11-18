@@ -493,6 +493,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     }
 
     void build_context_menu(HMENU menu, bool sys_menu = true) {
+        insert_menu(menu, t_menu_cmd_show_flowin_on_startup, L"Show on startup", true, host_config_->show_on_startup);
         insert_menu(menu, t_menu_cmd_always_on_top, L"Always on top", true, host_config_->always_on_top);
         insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No frame", true, !host_config_->show_caption);
         insert_menu(menu, t_menu_cmd_show_in_taskbar, L"Show in the taskbar", true, host_config_->show_in_taskbar);
@@ -509,6 +510,10 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
 
     void execute_context_menu(int cmd, int param = 0) {
         switch (cmd) {
+            case t_menu_cmd_show_flowin_on_startup:
+                host_config_->show_on_startup = !host_config_->show_on_startup;
+                break;
+
             case t_menu_cmd_always_on_top:
                 host_config_->always_on_top = !host_config_->always_on_top;
                 set_always_on_top(host_config_->always_on_top);
