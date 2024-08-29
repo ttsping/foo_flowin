@@ -40,7 +40,7 @@ class cfg_flowin_host {
         bool resizable : 1;
         bool draggable : 1;
         bool shadowed : 1;
-        uint8_t legacy_no_frame; // internal use.
+        uint8_t legacy_no_frame;  // internal use.
         uint8_t reserved[2];
     } cfg_no_frame;
     bool show_in_taskbar;
@@ -73,6 +73,15 @@ class cfg_flowin : public cfg_var {
     void enum_configuration(t_callback p_callback) {
         for (size_t n = 0, m = host_config_list_.size(); n < m; ++n) {
             p_callback(host_config_list_[n]);
+        }
+    }
+
+    template<typename t_callback>
+    void enum_configuration_v2(t_callback p_callback) {
+        for (size_t n = 0, m = host_config_list_.size(); n < m; ++n) {
+            if (p_callback(host_config_list_[n])) {
+                return;
+            }
         }
     }
 

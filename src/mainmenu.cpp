@@ -14,23 +14,24 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
     }
     void get_display(pfc::string_base& text, t_uint32& flags) override {
         validate_config();
-        bool is_alive = config_ ? flowin_core::get()->is_flowin_alive(config_->guid) : false;
-        auto make_flags = [&](bool check = false, bool disable = false) {
-            flags = 0;
-            if (!config_) {
+        const bool is_alive = config_ ? flowin_core::get()->is_flowin_alive(config_->guid) : false;
+        const auto menu_set_check = [&](bool check = false) {
+            if ((config_ == nullptr) && is_require_config()) {
                 flags = mainmenu_commands::flag_disabled;
-            } else {
-                if (check) {
-                    flags = mainmenu_commands::flag_checked;
-                }
-                if (disable) {
-                    flags |= mainmenu_commands::flag_disabled;
-                }
+                return;
             }
+            flags |= (check ? mainmenu_commands::flag_checked : 0);
+        };
+        const auto menu_set_disable = [&](bool disable = false) {
+            if ((config_ == nullptr) && is_require_config()) {
+                flags = mainmenu_commands::flag_disabled;
+                return;
+            }
+            flags |= (disable ? mainmenu_commands::flag_disabled : 0);
         };
 
         uint32_t flowin_count = 0;
-        cfg_flowin::get()->enum_configuration([&flowin_count](cfg_flowin_host::sp_t) { ++flowin_count; });
+        cfg_flowin::get()->enum_configuration([&flowin_count](const cfg_flowin_host::sp_t&) { ++flowin_count; });
 
         flags = 0;
         switch (cmd_) {
@@ -39,55 +40,62 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 break;
             case t_menu_cmd_show_all:
                 text = "Show all";
-                if (flowin_count == 0) flags = mainmenu_commands::flag_disabled;
+                menu_set_disable(flowin_count == 0);
                 break;
             case t_menu_cmd_close_all:
                 text = "Close all";
-                if (flowin_count == 0) flags = mainmenu_commands::flag_disabled;
+                menu_set_disable(flowin_count == 0);
                 break;
             case t_menu_cmd_show_flowin:
                 text = "Show";
-                make_flags(is_alive);
+                menu_set_check(is_alive);
                 break;
             case t_menu_cmd_show_flowin_on_startup:
                 text = "Show on startup";
-                make_flags(config_ && config_->show_on_startup);
+                menu_set_check(config_ && config_->show_on_startup);
                 break;
             case t_menu_cmd_always_on_top:
                 text = "Always on top";
-                make_flags(config_ && config_->always_on_top, !is_alive);
+                menu_set_check(config_ && config_->always_on_top);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_flowin_bring_to_top:
                 text = "Bring to top";
-                make_flags();
+                menu_set_check(false);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_flowin_no_frame:
                 text = "No frame";
-                make_flags(config_ && !config_->show_caption, !is_alive);
+                menu_set_check(config_ && !config_->show_caption);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_snap_to_edge:
                 text = "Snap to screen edge";
-                make_flags(config_ && config_->enable_snap, !is_alive || !config_ || !config_->show_caption);
+                menu_set_check(config_ && config_->enable_snap);
+                menu_set_disable(!is_alive || !config_ || !config_->show_caption);
                 break;
             case t_menu_cmd_snap_auto_hide:
                 text = "Auto hide when snapped";
-                make_flags(config_ && config_->enable_autohide_when_snapped, !is_alive || !config_ || !config_->enable_snap || !config_->show_caption);
+                menu_set_check(config_ && config_->enable_autohide_when_snapped);
+                menu_set_disable(!is_alive || !config_ || !config_->enable_snap || !config_->show_caption);
                 break;
             case t_menu_cmd_flowin_reset_position:
                 text = "Reset position";
-                make_flags();
+                menu_set_check(false);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_edit_mode:
                 text = "Edit mode";
-                make_flags(config_ && config_->edit_mode, !is_alive);
+                menu_set_check(config_ && config_->edit_mode);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_destroy_element:
                 text = "Delete";
-                make_flags(false, !is_alive);
+                menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_flowin_identify:
                 text = config_ ? config_->window_title : "Unknown";
-                make_flags(false, true);
+                menu_set_disable(true);
                 break;
             case t_menu_cmd_flowin_show_info:
                 text = "Info";
@@ -184,17 +192,21 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
 
   private:
     void validate_config() {
-        if (config_ == nullptr) {
-            GUID active_guid = flowin_core::get()->get_latest_active_flowin();
-            if (active_guid == pfc::guid_null) {
-                return;
-            }
-            cfg_flowin::get()->enum_configuration([&](cfg_flowin_host::sp_t config) {
-                if (config->guid == active_guid) {
-                    config_ = config;
-                }
-            });
+        if (config_ != nullptr) {
+            return;
         }
+
+        GUID active_guid = flowin_core::get()->get_latest_active_flowin();
+        if (active_guid == pfc::guid_null) {
+            return;
+        }
+        cfg_flowin::get()->enum_configuration_v2([&](cfg_flowin_host::sp_t config) {
+            if (config->guid == active_guid) {
+                config_ = config;
+                return true;
+            }
+            return false;
+        });
     }
 
     bool is_require_config() {

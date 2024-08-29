@@ -495,12 +495,12 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     void build_context_menu(HMENU menu, bool sys_menu = true) {
         insert_menu(menu, t_menu_cmd_show_flowin_on_startup, L"Show on startup", true, host_config_->show_on_startup);
         insert_menu(menu, t_menu_cmd_always_on_top, L"Always on top", true, host_config_->always_on_top);
-        insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No frame", true, !host_config_->show_caption);
+        insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No window frame", true, !host_config_->show_caption);
         insert_menu(menu, t_menu_cmd_show_in_taskbar, L"Show in the taskbar", true, host_config_->show_in_taskbar);
         insert_menu(menu, t_menu_cmd_snap_to_edge, L"Snap to screen edge", true, host_config_->enable_snap);
         insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap, host_config_->enable_autohide_when_snapped);
         insert_menu(menu, t_menu_cmd_edit_mode, L"Edit mode", true, host_config_->edit_mode);
-        insert_menu(menu, t_menu_cmd_flowin_custom_title, L"Custom Title");
+        insert_menu(menu, t_menu_cmd_flowin_custom_title, L"Custom title");
         insert_menu(menu, t_menu_cmd_flowin_transparency, L"Transparency");
         insert_menu(menu, t_menu_cmd_destroy_element, L"Delete");
         if (sys_menu) {
@@ -572,7 +572,7 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                 pfc::string8 element_name;
                 uGetWindowText(*this, element_name);
                 pfc::string_formatter msg;
-                msg << " Delete \"" << uGetWindowText(*this).c_str() << "\"?\n You cannot restore it when deleted.";
+                msg << " You are about to delete \"" << uGetWindowText(*this).c_str() << "\".\n This action cannot be undone.  Do you want to continue?";
                 if (uMessageBox(*this, msg, "Warning", MB_OKCANCEL | MB_ICONWARNING) == IDOK) {
                     fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin(this->host_config_->guid, true); });
                 }

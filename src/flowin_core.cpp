@@ -38,8 +38,7 @@ void flowin_core::initalize() {
 void flowin_core::finalize() {
     std::vector<HWND> host_wnds;
     flowin_hosts_.enumerate([&](const ui_element_instance_ptr& ptr) { host_wnds.push_back(ptr->get_wnd()); });
-    for (auto& hwnd: host_wnds)
-    {
+    for (auto& hwnd : host_wnds) {
         send_message(hwnd, WM_CLOSE);
     }
 
