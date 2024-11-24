@@ -244,13 +244,13 @@ class CSnapWindow {
   private:
     inline VOID StartSnapAnimateTimer() {
         if (snap_timer_ == NULL) {
-            snap_timer_ = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, 10, NULL);
+            snap_timer_ = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, USER_TIMER_MINIMUM, NULL);
         }
     }
 
     inline VOID KillSnapAnimateTimer() {
         if (snap_timer_) {
-            ::KillTimer(GetHWnd(), SNAP_TIMER_ID);
+            ::KillTimer(GetHWnd(), snap_timer_);
             snap_timer_ = NULL;
         }
     }
@@ -263,7 +263,7 @@ class CSnapWindow {
 
     inline VOID KillMouseCheckTimer() {
         if (mouse_check_timer_) {
-            ::KillTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID);
+            ::KillTimer(GetHWnd(), mouse_check_timer_);
             mouse_check_timer_ = NULL;
         }
     }
@@ -272,6 +272,7 @@ class CSnapWindow {
         if (HDC dc = ::GetDC(NULL)) {
             dpi_ = GetDeviceCaps(dc, LOGPIXELSX);
             snap_detect_val_ = MulDiv(16, dpi_, 96);
+            snap_move_delta_ = MulDiv(kSnapMoveDelta, dpi_, 96);
             ::ReleaseDC(NULL, dc);
         }
     }
@@ -301,7 +302,7 @@ class CSnapWindow {
         if (!GetWorkAreaRect(&rect_work))
             return FALSE;
 
-        constexpr int move_delta = 45;
+        const int move_delta = snap_move_delta_;
         int dx = 0, dy = 0;
         int& val = (snap_state_ == SNAP_LEFT || snap_state_ == SNAP_RIGHT) ? dx : dy;
         val = (snap_state_ == SNAP_LEFT || snap_state_ == SNAP_TOP) ? -1 * move_delta : move_delta;
@@ -381,7 +382,7 @@ class CSnapWindow {
                 break;
         }
 
-        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
         return animate_continue;
     }
 
@@ -396,4 +397,6 @@ class CSnapWindow {
     UINT_PTR mouse_check_timer_ = 0;
     int kSnapHideEdgeWidth = 8;
     BOOL mouse_in_window_ = FALSE;
+    const int kSnapMoveDelta = 45;
+    int snap_move_delta_ = kSnapMoveDelta;
 };
