@@ -411,8 +411,10 @@ STDMETHODIMP FlowinControlImpl::FindByChild(UINT child_id, IFlowinHost** pp) {
     if (pp == nullptr) {
         return E_POINTER;
     }
-
+#pragma warning(push)
+#pragma warning(disable:4312)
     GUID host_guid = flowin_core::get()->get_flowin_by_child(reinterpret_cast<HWND>(child_id));
+#pragma warning(pop)
     if (host_guid == pfc::guid_null) {
         return E_FAIL;
     }

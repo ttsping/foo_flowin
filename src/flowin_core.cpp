@@ -205,7 +205,7 @@ BOOL flowin_core::send_message(HWND wnd, UINT msg, WPARAM wp /*= 0*/, LPARAM lp 
     if (!::IsWindow(wnd)) {
         return FALSE;
     }
-    return ::SendMessage(wnd, msg, wp, lp);
+    return !!::SendMessage(wnd, msg, wp, lp);
 }
 
 BOOL flowin_core::post_message(const GUID& host_guid, UINT msg, WPARAM wp, LPARAM lp) {
