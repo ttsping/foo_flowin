@@ -65,7 +65,7 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 menu_set_disable(!is_alive);
                 break;
             case t_menu_cmd_flowin_no_frame:
-                text = "No frame";
+                text = "No window frame";
                 menu_set_check(config_ && !config_->show_caption);
                 menu_set_disable(!is_alive);
                 break;
