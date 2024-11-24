@@ -1,4 +1,4 @@
-// dllmain.cpp : Defines the entry point for the DLL application.
+﻿// dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
 #include <comdef.h>
 
@@ -25,5 +25,5 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 }
 
 namespace {
-DECLARE_COMPONENT_VERSION("Flowin", "0.2.0 beta", "ohyeah");
+DECLARE_COMPONENT_VERSION("Flowin", "0.2.2", "(C) ohyeah");
 }
