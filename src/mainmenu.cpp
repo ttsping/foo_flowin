@@ -101,6 +101,15 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                 text = "Info";
                 flags = mainmenu_commands::flag_defaulthidden;
                 break;
+            case t_menu_cmd_show_flowin_and_hide_main_window:
+                text = "Show flowin and hide main window";
+                flags = mainmenu_commands::flag_defaulthidden;
+                menu_set_disable(is_alive);
+                break;
+            case t_menu_cmd_close_flowin_and_activate_main_window:
+                text = "Close flowin and activate main window";
+                flags = mainmenu_commands::flag_defaulthidden;
+                menu_set_disable(!is_alive);
             default:
                 break;
         }
@@ -166,6 +175,26 @@ class flowin_config_menu_node_command : public mainmenu_node_command {
                     pfc::string8 msg;
                     msg << "guid: " << pfc::print_guid(config_->guid);
                     popup_message_v2::g_show(core_api::get_main_window(), msg);
+                }
+                break;
+
+            case t_menu_cmd_show_flowin_and_hide_main_window:
+                if (config_ == nullptr) {
+                    break;
+                }
+                if (!flowin_core::get()->is_flowin_alive(config_->guid)) {
+                    flowin_core::get()->create_flowin(config_->guid);
+                    ui_control::get()->hide();
+                }
+                break;
+
+            case t_menu_cmd_close_flowin_and_activate_main_window:
+                if (config_ == nullptr) {
+                    break;
+                }
+                if (flowin_core::get()->is_flowin_alive(config_->guid)) {
+                    flowin_core::get()->post_message(config_->guid, WM_CLOSE);
+                    ui_control::get()->activate();
                 }
                 break;
 
@@ -259,9 +288,19 @@ class live_flowin_node_group : public mainmenu_node_group {
   public:
     live_flowin_node_group(cfg_flowin_host::sp_t cfg) : config_(cfg) {
         t_uint32 menus_id[] = {
-            t_menu_cmd_show_flowin,     t_menu_cmd_show_flowin_on_startup, t_menu_cmd_always_on_top,   t_menu_cmd_flowin_bring_to_top,
-            t_menu_cmd_flowin_no_frame, t_menu_cmd_snap_to_edge,           t_menu_cmd_snap_auto_hide,  t_menu_cmd_flowin_reset_position,
-            t_menu_cmd_edit_mode,       t_menu_cmd_flowin_show_info,       t_menu_cmd_destroy_element,
+            t_menu_cmd_show_flowin,
+            t_menu_cmd_show_flowin_on_startup,
+            t_menu_cmd_always_on_top,
+            t_menu_cmd_flowin_bring_to_top,
+            t_menu_cmd_flowin_no_frame,
+            t_menu_cmd_snap_to_edge,
+            t_menu_cmd_snap_auto_hide,
+            t_menu_cmd_flowin_reset_position,
+            t_menu_cmd_edit_mode,
+            t_menu_cmd_flowin_show_info,
+            t_menu_cmd_destroy_element,
+            t_menu_cmd_show_flowin_and_hide_main_window,
+            t_menu_cmd_close_flowin_and_activate_main_window,
         };
         for (t_size n = 0, m = pfc::array_size_t(menus_id); n < m; ++n) {
             auto node = fb2k::service_new<flowin_config_menu_node_command>(menus_id[n], cfg);

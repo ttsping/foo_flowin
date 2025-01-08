@@ -64,6 +64,8 @@ enum t_flowin_menu_command_id {
     t_menu_cmd_flowin_transparency,
     t_menu_cmd_flowin_reset_position,
     t_menu_cmd_flowin_bring_to_top,
+    t_menu_cmd_show_flowin_and_hide_main_window,
+    t_menu_cmd_close_flowin_and_activate_main_window,
     t_menu_cmd_flowin_identify,
     t_menu_cmd_flowin_show_info,
 };
