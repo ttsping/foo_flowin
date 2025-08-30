@@ -19,42 +19,51 @@ public:
 
     flowin_dummy_ui_element(ui_element_config::ptr, ui_element_instance_callback_ptr p_callback) : callback_(p_callback)
     {
+        // simply use a placeholder UI element to capture the callback from foo_ui_std.
         flowin_core::get()->set_instance_callback(callback_);
     }
 
-    HWND get_wnd()
+    HWND get_wnd() override
     {
-        return NULL;
+        return nullptr;
     }
-    void set_configuration(ui_element_config::ptr config)
+
+    void set_configuration(ui_element_config::ptr config) override
     {
         config_ = config;
     }
-    ui_element_config::ptr get_configuration()
+
+    ui_element_config::ptr get_configuration() override
     {
         return config_;
     }
+
     static GUID g_get_guid()
     {
         return g_dui_dummy_element_guid;
     }
+
     static GUID g_get_subclass()
     {
         return ui_element_subclass_utility;
     }
+
     static void g_get_name(pfc::string_base& out)
     {
         out = "dummp_dui_window";
     }
+
     static ui_element_config::ptr g_get_default_configuration()
     {
         return ui_element_config::g_create_empty(g_get_guid());
     }
+
     static const char* g_get_description()
     {
         return "";
     }
-    void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size)
+
+    void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override
     {
         flowin_core::get()->notify(p_what, p_param1, p_param2, p_param2size);
     }

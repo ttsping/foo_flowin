@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "flowin_config.h"
 #include "flowin_vars.h"
+#include "flowin_callback.h"
 
 cfg_flowin g_flowin_config;
 
@@ -178,35 +179,37 @@ void cfg_flowin::reset()
     version = t_version_current;
 }
 
-void cfg_flowin::register_callback(cfg_flowin_callback::wp_t cb)
+void cfg_flowin::register_callback(cfg_flowin_callback* cb)
 {
+    RETURN_VOID_IF(cb == nullptr);
     core_api::ensure_main_thread();
-    callbacks_.push_back(cb);
+    if (auto it = std::find(callbacks_.begin(), callbacks_.end(), cb); it == callbacks_.end())
+        callbacks_.push_back(cb);
+}
+
+void cfg_flowin::unregister_callback(cfg_flowin_callback* cb)
+{
+    RETURN_VOID_IF(cb == nullptr);
+    core_api::ensure_main_thread();
+    if (auto it = std::find(callbacks_.begin(), callbacks_.end(), cb); it != callbacks_.end())
+        callbacks_.erase(it);
 }
 
 cfg_flowin_host::sp_t cfg_flowin::find_configuration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
-    for (auto& config : host_config_list_)
-    {
-        if (config->guid == host_guid)
-        {
-            return config;
-        }
-    }
-    return nullptr;
+    auto& configs = host_config_list_;
+    auto it = std::find_if(configs.begin(), configs.end(), cfg_flowin_host_comparator{host_guid});
+    return it == configs.end() ? nullptr : *it;
 }
 
 cfg_flowin_host::sp_t cfg_flowin::add_or_find_configuration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
-    for (auto& config : host_config_list_)
-    {
-        if (config->guid == host_guid)
-        {
-            return config;
-        }
-    }
+
+    if (auto cfg = find_configuration(host_guid))
+        return cfg;
+
     auto cfg = new_host_configuration();
     CoCreateGuid(&cfg->guid);
     host_config_list_.push_back(cfg);
@@ -216,25 +219,16 @@ cfg_flowin_host::sp_t cfg_flowin::add_or_find_configuration(const GUID& host_gui
 void cfg_flowin::remove_configuration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
-    for (auto iter = host_config_list_.begin(); iter != host_config_list_.end(); ++iter)
-    {
-        if ((*iter)->guid == host_guid)
-        {
-            host_config_list_.erase(iter);
-            break;
-        }
-    }
+    auto& configs = host_config_list_;
+    auto it = std::find_if(configs.begin(), configs.end(), cfg_flowin_host_comparator{host_guid});
+    if (it != configs.end())
+        configs.erase(it);
 }
 
 void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort)
 {
     for (auto& cb : callbacks_)
-    {
-        if (auto sp = cb.lock())
-        {
-            sp->on_cfg_pre_write();
-        }
-    }
+        cb->on_cfg_pre_write();
 
     try
     {
@@ -260,7 +254,7 @@ void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort)
             p_stream->write(writer.m_buffer.get_ptr(), writer.m_buffer.get_size(), p_abort);
         }
     }
-    catch (exception_io_data)
+    catch (...)
     {
     }
 }
@@ -289,14 +283,14 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
                 cfg->set_data_raw(p_stream, data_size, p_abort);
                 host_config_list_.push_back(cfg);
             }
+            break;
         }
-        break;
 
         default:
             break;
         }
     }
-    catch (exception_io_data)
+    catch (...)
     {
         reset();
     }

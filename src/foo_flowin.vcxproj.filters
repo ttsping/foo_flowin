@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\ui">
+      <UniqueIdentifier>{d35c860e-3f4d-4856-b8e7-bc60d04b6d6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -51,6 +54,15 @@
     <ClInclude Include="com_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ui\ui_custom_title.h">
+      <Filter>Source Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\ui_transparency_settings.h">
+      <Filter>Source Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\ui_no_frame.h">
+      <Filter>Source Files\ui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -85,6 +97,15 @@
     </ClCompile>
     <ClCompile Include="flowin_interface_impl.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\ui_custom_title.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\ui_transparency_settings.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\ui_no_frame.cpp">
+      <Filter>Source Files\ui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -39,4 +39,5 @@ ipch/
 *.recipe
 dlldata.c
 vc140.*
+vs-*.txt
 JSON/

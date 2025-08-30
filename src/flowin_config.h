@@ -1,12 +1,13 @@
 #pragma once
 #include <memory>
 #include <vector>
-#include "flowin_callback.h"
+
+class cfg_flowin_callback;
 
 class cfg_flowin_host
 {
 public:
-    DECL_SMART_PTR(cfg_flowin_host);
+    using sp_t = std::shared_ptr<cfg_flowin_host>;
 
     cfg_flowin_host()
     {
@@ -59,6 +60,27 @@ private:
     uint32_t version;
 };
 
+class cfg_flowin_host_comparator
+{
+private:
+    GUID target_guid;
+
+public:
+    explicit cfg_flowin_host_comparator(const GUID& target) : target_guid(target)
+    {
+    }
+
+    bool operator()(const cfg_flowin_host& cfg) const
+    {
+        return cfg.guid == target_guid;
+    }
+
+    bool operator()(const cfg_flowin_host::sp_t& cfg) const
+    {
+        return cfg->guid == target_guid;
+    }
+};
+
 class cfg_flowin : public cfg_var
 {
 public:
@@ -70,7 +92,8 @@ public:
 
     void reset();
 
-    void register_callback(cfg_flowin_callback::wp_t cb);
+    void register_callback(cfg_flowin_callback* cb);
+    void unregister_callback(cfg_flowin_callback* cb);
 
     cfg_flowin_host::sp_t find_configuration(const GUID& host_guid);
     cfg_flowin_host::sp_t add_or_find_configuration(const GUID& host_guid);
@@ -102,10 +125,38 @@ private:
     }
 
 public:
-    bool show_debug_log;
+    bool show_debug_log = false;
 
 private:
     uint32_t version;
     std::vector<cfg_flowin_host::sp_t> host_config_list_;
-    std::vector<cfg_flowin_callback::wp_t> callbacks_;
+    std::vector<cfg_flowin_callback*> callbacks_;
 };
+
+namespace configuration
+{
+inline auto find(const GUID& host_guid)
+{
+    return cfg_flowin::get()->find_configuration(host_guid);
+}
+
+inline auto add_or_find(const GUID& host_guid)
+{
+    return cfg_flowin::get()->add_or_find_configuration(host_guid);
+}
+
+inline void remove(const GUID& host_guid)
+{
+    cfg_flowin::get()->remove_configuration(host_guid);
+}
+
+inline GUID guid_from_element_config(ui_element_config::ptr& data)
+{
+    return cfg_flowin_host::cfg_get_guid(data);
+}
+
+template <typename t_callback> inline void for_each(t_callback&& p_callback)
+{
+    cfg_flowin::get()->enum_configuration(std::move(p_callback));
+}
+} // namespace configuration

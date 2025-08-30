@@ -1,9 +1,15 @@
 #pragma once
 
-// clang-format off
+#define RETURN_VOID_IF(condition)                                                                                      \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((condition))                                                                                               \
+            return;                                                                                                    \
+    } while (false)
 
-#define DECL_SHARED_PTR(t) using sp_t = std::shared_ptr<t>
-#define DECL_WEAK_PTR(t) using wp_t = std::weak_ptr<t>
-#define DECL_SMART_PTR(t) DECL_SHARED_PTR(t); DECL_WEAK_PTR(t)
-
-// clang-format on
+#define RETURN_HR_IF(hr, condition)                                                                                    \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((condition))                                                                                               \
+            return (hr);                                                                                               \
+    } while (false)

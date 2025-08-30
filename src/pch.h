@@ -18,6 +18,13 @@
 #include <strsafe.h>
 #include <shlwapi.h>
 
+#include <memory>
+#include <string>
+
 #include "sdk/foobar2000/SDK/foobar2000.h"
+
+#include <libPPUI/DarkMode.h>
+
+#include "flowin_defines.h"
 
 #endif // PCH_H

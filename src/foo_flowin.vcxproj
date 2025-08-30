@@ -102,12 +102,12 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
     <LinkIncremental>true</LinkIncremental>
@@ -118,12 +118,12 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
     <LinkIncremental>false</LinkIncremental>
@@ -134,12 +134,12 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Beta|x64'">
-    <IncludePath>$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)dist\;$(SolutionDir)dist\wtl\Include;$(SolutionDir)dist\sdk;$(SolutionDir)dist\sdk\foobar2000;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)dist\sdk\foobar2000\shared;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir);$(SourcePath)</SourcePath>
     <LinkIncremental>false</LinkIncremental>
@@ -327,6 +327,9 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="snap_window.h" />
     <ClInclude Include="flowin_vars.h" />
+    <ClInclude Include="ui\ui_custom_title.h" />
+    <ClInclude Include="ui\ui_no_frame.h" />
+    <ClInclude Include="ui\ui_transparency_settings.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
@@ -347,6 +350,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Beta|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="flowin_dummy.cpp" />
+    <ClCompile Include="ui\ui_custom_title.cpp" />
+    <ClCompile Include="ui\ui_no_frame.cpp" />
+    <ClCompile Include="ui\ui_transparency_settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.clang-format" />

@@ -3,13 +3,12 @@
 #include <map>
 #include "flowin_callback.h"
 
-class flowin_core;
-using flowin_core_ptr = std::shared_ptr<flowin_core>;
-
-class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_this<flowin_core>
+class flowin_core : public cfg_flowin_callback
 {
 public:
-    static flowin_core_ptr get();
+    using sp_t = std::shared_ptr<flowin_core>;
+
+    static sp_t get();
 
     // cfg_flowin_callback
     void on_cfg_pre_write() override;
@@ -45,10 +44,10 @@ public:
     ui_element_instance_ptr get_flowin_instance(const GUID& host_guid);
 
     BOOL post_message(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
-    BOOL send_message(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    LRESULT send_message(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
 
     BOOL post_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
-    BOOL send_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    LRESULT send_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
 
 private:
     ui_element_instance_callback_ptr callback_;
