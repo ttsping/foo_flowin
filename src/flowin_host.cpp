@@ -17,23 +17,32 @@
 
 _COM_SMARTPTR_TYPEDEF(ITaskbarList, __uuidof(ITaskbarList));
 
-namespace {
+namespace
+{
 
-class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog> {
-  public:
-    enum { IDD = IDD_HOST_CUSTOM_TITLE };
+class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog>
+{
+public:
+    enum
+    {
+        IDD = IDD_HOST_CUSTOM_TITLE
+    };
 
-    CCustomTitleDialog(pfc::string8& title) : title_(title) {}
+    CCustomTitleDialog(pfc::string8& title) : title_(title)
+    {
+    }
 
     BEGIN_MSG_MAP_EX(CCustomTitleDialog)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_RANGE_HANDLER_EX(IDOK, IDCANCEL, OnCloseCmd)
     END_MSG_MAP()
 
-  private:
-    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+private:
+    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/)
+    {
         ui_config_manager::ptr api;
-        if (ui_config_manager::tryGet(api)) {
+        if (ui_config_manager::tryGet(api))
+        {
             dark_mode_hooks_.AddDialogWithControls(m_hWnd);
             dark_mode_hooks_.SetDark(api->is_dark_mode());
         }
@@ -42,23 +51,31 @@ class CCustomTitleDialog : public CDialogImpl<CCustomTitleDialog> {
         return TRUE;
     }
 
-    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) {
-        if (id == IDOK) {
+    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/)
+    {
+        if (id == IDOK)
+        {
             ::uGetDlgItemText(*this, IDC_EDIT_CUSTOM_TITLE, title_);
         }
         EndDialog(id);
     }
 
-  private:
+private:
     pfc::string8& title_;
     DarkMode::CHooks dark_mode_hooks_;
 };
 
-class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
-  public:
-    enum { IDD = IDD_TRANSPARENCY };
+class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog>
+{
+public:
+    enum
+    {
+        IDD = IDD_TRANSPARENCY
+    };
 
-    CTransparencySetDialog(HWND wnd, cfg_flowin_host::sp_t host_cfg) : window_(wnd), cfg_(host_cfg) {}
+    CTransparencySetDialog(HWND wnd, cfg_flowin_host::sp_t host_cfg) : window_(wnd), cfg_(host_cfg)
+    {
+    }
 
     BEGIN_MSG_MAP_EX(CTransparencySetDialog)
         MSG_WM_INITDIALOG(OnInitDialog)
@@ -67,10 +84,12 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
         MSG_WM_HSCROLL(OnHScroll)
     END_MSG_MAP()
 
-  private:
-    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+private:
+    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/)
+    {
         ui_config_manager::ptr api;
-        if (ui_config_manager::tryGet(api)) {
+        if (ui_config_manager::tryGet(api))
+        {
             dark_mode_hooks_.AddDialogWithControls(m_hWnd);
             dark_mode_hooks_.SetDark(api->is_dark_mode());
         }
@@ -84,30 +103,38 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
         track_hover_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY_HOVER));
         track_hover_ctrl_.SetRange(0, 100);
         track_hover_ctrl_.SetPos((int)cfg_->transparency_active);
-        if (!cfg_->enable_transparency_active) {
+        if (!cfg_->enable_transparency_active)
+        {
             track_hover_ctrl_.EnableWindow(FALSE);
         }
         return TRUE;
     }
 
-    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) { EndDialog(id); }
+    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/)
+    {
+        EndDialog(id);
+    }
 
-    void OnEnableHoverTransparency(UINT /*code*/, int /*id*/, CWindow /*ctrl*/) {
+    void OnEnableHoverTransparency(UINT /*code*/, int /*id*/, CWindow /*ctrl*/)
+    {
         cfg_->enable_transparency_active = uButton_GetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE);
         track_hover_ctrl_.EnableWindow(cfg_->enable_transparency_active);
     }
 
-    void OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl) {
-        if (code == TB_THUMBTRACK) {
+    void OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl)
+    {
+        if (code == TB_THUMBTRACK)
+        {
             int transparency = -1;
             cfg_->transparency = track_ctrl_.GetPos();
             cfg_->transparency_active = track_hover_ctrl_.GetPos();
-            transparency = ctrl.GetDlgCtrlID() == IDC_SLIDER_TRANSPARENCY ? (int)cfg_->transparency : (int)cfg_->transparency_active;
+            transparency = ctrl.GetDlgCtrlID() == IDC_SLIDER_TRANSPARENCY ? (int)cfg_->transparency
+                                                                          : (int)cfg_->transparency_active;
             ::PostMessage(window_, UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency, 0);
         }
     }
 
-  private:
+private:
     cfg_flowin_host::sp_t cfg_;
     HWND window_;
     CTrackBarCtrl track_ctrl_;
@@ -115,21 +142,29 @@ class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog> {
     DarkMode::CHooks dark_mode_hooks_;
 };
 
-class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
-  public:
-    enum { IDD = IDD_NO_FRAME_SETTING };
+class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog>
+{
+public:
+    enum
+    {
+        IDD = IDD_NO_FRAME_SETTING
+    };
 
-    CNoFrameSettingsDialog(cfg_flowin_host::sp_t host_cfg) : cfg_(host_cfg) {}
+    CNoFrameSettingsDialog(cfg_flowin_host::sp_t host_cfg) : cfg_(host_cfg)
+    {
+    }
 
     BEGIN_MSG_MAP_EX(CNoFrameSettingsDialog)
         MSG_WM_INITDIALOG(OnInitDialog)
         COMMAND_RANGE_HANDLER_EX(IDOK, IDCANCEL, OnCloseCmd)
     END_MSG_MAP()
 
-  private:
-    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/) {
+private:
+    BOOL OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/)
+    {
         ui_config_manager::ptr api;
-        if (ui_config_manager::tryGet(api)) {
+        if (ui_config_manager::tryGet(api))
+        {
             dark_mode_hooks_.AddDialogWithControls(m_hWnd);
             dark_mode_hooks_.SetDark(api->is_dark_mode());
         }
@@ -137,23 +172,29 @@ class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
 
         pfc::string8 tips_fmt, tips;
         uGetDlgItemText(m_hWnd, IDC_NO_FRAME_TIPS, tips_fmt);
-        uReplaceString(tips, tips_fmt, tips_fmt.length(), "%s", 2, cfg_->window_title, cfg_->window_title.length(), false);
+        uReplaceString(tips, tips_fmt, tips_fmt.length(), "%s", 2, cfg_->window_title, cfg_->window_title.length(),
+                       false);
         uSetDlgItemText(m_hWnd, IDC_NO_FRAME_TIPS, tips);
 
         uButton_SetCheck(m_hWnd, IDC_RESIZABLE, cfg_->cfg_no_frame.resizable);
         uButton_SetCheck(m_hWnd, IDC_MOVABLE, cfg_->cfg_no_frame.draggable);
-        if (cfg_->cfg_no_frame.legacy_no_frame) {
+        if (cfg_->cfg_no_frame.legacy_no_frame)
+        {
             uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, false);
             GetDlgItem(IDC_SHOW_SHADOW).EnableWindow(FALSE);
-        } else {
+        }
+        else
+        {
             uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, cfg_->cfg_no_frame.shadowed);
         }
 
         return TRUE;
     }
 
-    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/) {
-        if (id == IDOK) {
+    void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/)
+    {
+        if (id == IDOK)
+        {
             cfg_->cfg_no_frame.resizable = uButton_GetCheck(m_hWnd, IDC_RESIZABLE);
             cfg_->cfg_no_frame.draggable = uButton_GetCheck(m_hWnd, IDC_MOVABLE);
             cfg_->cfg_no_frame.shadowed = uButton_GetCheck(m_hWnd, IDC_SHOW_SHADOW);
@@ -161,61 +202,85 @@ class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog> {
         EndDialog(id);
     }
 
-  private:
+private:
     cfg_flowin_host::sp_t cfg_;
     DarkMode::CHooks dark_mode_hooks_;
 };
 
-typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME, 0> CFlowinTraits;
+typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME,
+                   0>
+    CFlowinTraits;
 
 class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
                     public CWindowImpl<flowin_host, CWindow, CFlowinTraits>,
                     public CSnapWindow<flowin_host>,
-                    public message_filter_impl_base {
-    class flowin_ui_element_instance_callback_impl : public ui_element_instance_callback_v3 {
-      public:
-        flowin_ui_element_instance_callback_impl(class flowin_host* host, ui_element_instance_callback_ptr callback) : host_(host), callback_(callback) {}
-        void on_min_max_info_change() {}
-        virtual void on_alt_pressed(bool p_state) {}
-        bool query_color(const GUID& p_what, t_ui_color& p_out) {
+                    public message_filter_impl_base
+{
+    class flowin_ui_element_instance_callback_impl : public ui_element_instance_callback_v3
+    {
+    public:
+        flowin_ui_element_instance_callback_impl(class flowin_host* host, ui_element_instance_callback_ptr callback)
+            : host_(host), callback_(callback)
+        {
+        }
+        void on_min_max_info_change()
+        {
+        }
+        virtual void on_alt_pressed(bool p_state)
+        {
+        }
+        bool query_color(const GUID& p_what, t_ui_color& p_out)
+        {
             if (callback_.is_valid())
                 return callback_->query_color(p_what, p_out);
             return false;
         }
-        bool request_activation(service_ptr_t<class ui_element_instance> p_item) { return true; }
-        bool is_edit_mode_enabled() {
+        bool request_activation(service_ptr_t<class ui_element_instance> p_item)
+        {
+            return true;
+        }
+        bool is_edit_mode_enabled()
+        {
             if (host_)
                 return host_->is_edit_mode_enabled();
             return false;
         }
-        void request_replace(service_ptr_t<class ui_element_instance> p_item) {
+        void request_replace(service_ptr_t<class ui_element_instance> p_item)
+        {
             if (callback_.is_valid())
                 callback_->request_replace(p_item);
         }
-        t_ui_font query_font() { return query_font_ex(ui_font_default); }
-        t_ui_font query_font_ex(const GUID& p_what) {
+        t_ui_font query_font()
+        {
+            return query_font_ex(ui_font_default);
+        }
+        t_ui_font query_font_ex(const GUID& p_what)
+        {
             if (callback_.is_valid())
                 return callback_->query_font_ex(p_what);
             ;
             return NULL;
         }
-        bool is_elem_visible(service_ptr_t<class ui_element_instance> elem) {
+        bool is_elem_visible(service_ptr_t<class ui_element_instance> elem)
+        {
             if (host_)
                 return host_->host_is_child_visible(0);
             return false;
         }
-        t_size notify(ui_element_instance* source, const GUID& what, t_size param1, const void* param2, t_size param2size) {
+        t_size notify(ui_element_instance* source, const GUID& what, t_size param1, const void* param2,
+                      t_size param2size)
+        {
             if (host_)
                 return host_->host_notify(source, what, param1, param2, param2size);
             return 0;
         }
 
-      private:
+    private:
         flowin_host* host_;
         ui_element_instance_callback_ptr callback_;
     };
 
-  public:
+public:
     DECLARE_WND_CLASS(TEXT("{EA622005-1140-4EF1-B64D-4A215DB3526A}"));
 
     BEGIN_MSG_MAP_EX(flowin_host)
@@ -250,122 +315,184 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     END_MSG_MAP()
 
     flowin_host(ui_element_config::ptr p_config, ui_element_instance_callback_ptr p_callback)
-        : ui_element_instance_host_base(p_callback), dummy_config_(p_config), host_config_(nullptr) {
+        : ui_element_instance_host_base(p_callback), dummy_config_(p_config), host_config_(nullptr)
+    {
         callback_ = new service_impl_t<flowin_ui_element_instance_callback_impl>(this, p_callback);
         set_configuration(p_config);
     }
-    static GUID g_get_guid() { return g_dui_flowin_host_guid; }
-    static GUID g_get_subclass() { return ui_element_subclass_utility; }
-    static void g_get_name(pfc::string_base& out) { out = "Flowin"; }
-    static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
-    static const char* g_get_description() { return ""; }
+    static GUID g_get_guid()
+    {
+        return g_dui_flowin_host_guid;
+    }
+    static GUID g_get_subclass()
+    {
+        return ui_element_subclass_utility;
+    }
+    static void g_get_name(pfc::string_base& out)
+    {
+        out = "Flowin";
+    }
+    static ui_element_config::ptr g_get_default_configuration()
+    {
+        return ui_element_config::g_create_empty(g_get_guid());
+    }
+    static const char* g_get_description()
+    {
+        return "";
+    }
 
     const int kWindowFrameX = ::GetSystemMetrics(SM_CXSIZEFRAME);
     const int kWindowFrameY = ::GetSystemMetrics(SM_CYSIZEFRAME);
 
-    bool has_child() { return element_inst_.is_valid() && ::IsWindow(element_inst_->get_wnd()); }
+    bool has_child()
+    {
+        return element_inst_.is_valid() && ::IsWindow(element_inst_->get_wnd());
+    }
 
-    bool pretranslate_message(MSG* p_msg) {
-        if (!IsChild(p_msg->hwnd)) {
+    bool pretranslate_message(MSG* p_msg)
+    {
+        if (!IsChild(p_msg->hwnd))
+        {
             return false;
         }
-        if (!host_config_) {
+        if (!host_config_)
+        {
             return false;
         }
 
         bool forward_message = false;
-        switch (p_msg->message) {
-            case WM_MOUSEMOVE:
-            case WM_NCMOUSEMOVE:
-                if (host_config_->enable_snap || host_config_->enable_transparency_active) {
-                    forward_message = true;
-                }
-                if (is_perform_drag_) {
-                    forward_message = true;
-                }
-                break;
-            case WM_MBUTTONDOWN:
-            case WM_MBUTTONUP:
-                if (is_cfg_no_frame()) {
-                    forward_message = true;
-                }
-                break;
-            default:
-                break;
+        switch (p_msg->message)
+        {
+        case WM_MOUSEMOVE:
+        case WM_NCMOUSEMOVE:
+            if (host_config_->enable_snap || host_config_->enable_transparency_active)
+            {
+                forward_message = true;
+            }
+            if (is_perform_drag_)
+            {
+                forward_message = true;
+            }
+            break;
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:
+            if (is_cfg_no_frame())
+            {
+                forward_message = true;
+            }
+            break;
+        default:
+            break;
         }
-        if (forward_message) {
+        if (forward_message)
+        {
             SendMessage(p_msg->message, p_msg->wParam, p_msg->lParam);
         }
         return false;
     }
 
-    HWND get_wnd() override { return *this; }
+    HWND get_wnd() override
+    {
+        return *this;
+    }
 
-    bool is_cfg_no_frame() const { return !host_config_->show_caption; }
+    bool is_cfg_no_frame() const
+    {
+        return !host_config_->show_caption;
+    }
 
-    auto& get_cfg_no_frame() const { return host_config_->cfg_no_frame; }
+    auto& get_cfg_no_frame() const
+    {
+        return host_config_->cfg_no_frame;
+    }
 
-    bool use_legacy_no_frame() const {
+    bool use_legacy_no_frame() const
+    {
         static int s_is_win11 = -1;
-        if (s_is_win11 == -1) {
+        if (s_is_win11 == -1)
+        {
             // run once
             s_is_win11 = 0;
             // not future-proof
             typedef NTSTATUS(WINAPI * RtlGetVersionPtr)(LPOSVERSIONINFOEXW);
             OSVERSIONINFOEXW ovi{};
-            if (RtlGetVersionPtr fun = (RtlGetVersionPtr)GetProcAddress(GetModuleHandleA("ntdll"), "RtlGetVersion")) {
+            if (RtlGetVersionPtr fun = (RtlGetVersionPtr)GetProcAddress(GetModuleHandleA("ntdll"), "RtlGetVersion"))
+            {
                 ovi.dwOSVersionInfoSize = sizeof(ovi);
                 fun(&ovi);
-                if ((double)ovi.dwMajorVersion >= 10 && ovi.dwBuildNumber >= 22000) {
+                if ((double)ovi.dwMajorVersion >= 10 && ovi.dwBuildNumber >= 22000)
+                {
                     s_is_win11 = 1;
-                } else {
+                }
+                else
+                {
                     s_is_win11 = 0;
                 }
             }
         }
 
         bool ret = s_is_win11 != 1 || !flowin_utils::is_composition_enabled();
-        if (host_config_) {
+        if (host_config_)
+        {
             host_config_->cfg_no_frame.legacy_no_frame = ret ? 1 : 0;
         }
         return ret;
     }
 
-    void show_or_hide_in_taskbar(bool show) {
-        try {
+    void show_or_hide_in_taskbar(bool show)
+    {
+        try
+        {
             CoInitializeScope scope;
             ITaskbarListPtr taskbar;
-            if (SUCCEEDED(taskbar.CreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER))) {
-                if (!show) {
+            if (SUCCEEDED(taskbar.CreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER)))
+            {
+                if (!show)
+                {
                     taskbar->DeleteTab(*this);
-                } else {
+                }
+                else
+                {
                     taskbar->AddTab(*this);
                 }
             }
-        } catch (std::exception&) {
+        }
+        catch (std::exception&)
+        {
         }
     }
 
-    bool is_active() const { return GetActiveWindow() == m_hWnd; }
+    bool is_active() const
+    {
+        return GetActiveWindow() == m_hWnd;
+    }
 
-    void set_configuration(ui_element_config::ptr config) override {
+    void set_configuration(ui_element_config::ptr config) override
+    {
         host_config_ = cfg_flowin::get()->add_or_find_configuration(cfg_flowin_host::cfg_get_guid(config));
     }
 
-    ui_element_config::ptr get_configuration() override { return dummy_config_; }
+    ui_element_config::ptr get_configuration() override
+    {
+        return dummy_config_;
+    }
 
-    void host_replace_element(unsigned /*p_id*/, ui_element_config::ptr cfg) override {
+    void host_replace_element(unsigned /*p_id*/, ui_element_config::ptr cfg) override
+    {
         const GUID& new_guid = cfg->get_guid();
         service_ptr_t<ui_element> element;
-        if (ui_element::g_find(element, new_guid)) {
+        if (ui_element::g_find(element, new_guid))
+        {
             element_inst_ = element->instantiate(*this, cfg, callback_);
-            if (!has_child()) {
+            if (!has_child())
+            {
                 return;
             }
             // resize host window
             PostMessage(WM_SIZE);
             // refresh element config
-            if (host_config_->subelement_guid != new_guid) {
+            if (host_config_->subelement_guid != new_guid)
+            {
                 host_config_->subelement_guid = new_guid;
                 element->get_name(host_config_->window_title);
                 uSetWindowText(*this, host_config_->window_title);
@@ -374,16 +501,22 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
     }
 
-    void host_replace_element(unsigned p_id, const GUID& p_newguid) override {
+    void host_replace_element(unsigned p_id, const GUID& p_newguid) override
+    {
         element_inst_.reset();
         service_ptr_t<ui_element> element;
-        if (ui_element::g_find(element, p_newguid)) {
+        if (ui_element::g_find(element, p_newguid))
+        {
             ui_element_config::ptr cfg;
-            if (p_newguid == host_config_->subelement_guid) {  // restore child element
+            if (p_newguid == host_config_->subelement_guid)
+            { // restore child element
                 cfg = host_config_->subelement(0);
-            } else {
+            }
+            else
+            {
                 cfg = element->get_default_configuration();
-                if (element->get_subclass() == ui_element_subclass_containers) {
+                if (element->get_subclass() == ui_element_subclass_containers)
+                {
                     host_config_->edit_mode = true;
                 }
             }
@@ -391,19 +524,36 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
     }
 
-    ui_element_instance_ptr host_get_child(t_size /*which*/) override { return element_inst_; }
+    ui_element_instance_ptr host_get_child(t_size /*which*/) override
+    {
+        return element_inst_;
+    }
 
-    t_size host_get_children_count() override { return has_child() ? 1 : 0; }
+    t_size host_get_children_count() override
+    {
+        return has_child() ? 1 : 0;
+    }
 
-    void host_bring_to_front(t_size /*which*/) override { bring_window_to_top(); }
+    void host_bring_to_front(t_size /*which*/) override
+    {
+        bring_window_to_top();
+    }
 
-    void host_replace_child(t_size which) override { callback_->request_replace(host_get_child(which)); }
+    void host_replace_child(t_size which) override
+    {
+        callback_->request_replace(host_get_child(which));
+    }
 
-    bool host_is_child_visible(t_size which) override { return has_child() && ::IsWindowVisible(element_inst_->get_wnd()); }
+    bool host_is_child_visible(t_size which) override
+    {
+        return has_child() && ::IsWindowVisible(element_inst_->get_wnd());
+    }
 
-    void initialize_window(HWND parent) {
+    void initialize_window(HWND parent)
+    {
         CSize dpi = QueryScreenDPIEx(*this);
-        if (dpi.cx <= 0 || dpi.cy <= 0) {
+        if (dpi.cx <= 0 || dpi.cy <= 0)
+        {
             dpi = CSize(96, 96);
         }
         int width = MulDiv(680, dpi.cx, 96);
@@ -411,76 +561,112 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         WIN32_OP_D(Create(parent, CRect(0, 0, width, height)));
     }
 
-    bool is_edit_mode_enabled() { return host_config_->edit_mode; }
-
-    t_size host_notify(ui_element_instance* source, const GUID& what, t_size param1, const void* param2, t_size param2size) { return 0; }
-
-  private:
-    bool is_transparency_enabled() {
-        return (host_config_->transparency > 0) || (host_config_->enable_transparency_active && host_config_->transparency_active > 0);
+    bool is_edit_mode_enabled()
+    {
+        return host_config_->edit_mode;
     }
 
-    void calc_intermediate_transparency(int32_t target_transparency) {
+    t_size host_notify(ui_element_instance* source, const GUID& what, t_size param1, const void* param2,
+                       t_size param2size)
+    {
+        return 0;
+    }
+
+private:
+    bool is_transparency_enabled()
+    {
+        return (host_config_->transparency > 0) ||
+               (host_config_->enable_transparency_active && host_config_->transparency_active > 0);
+    }
+
+    void calc_intermediate_transparency(int32_t target_transparency)
+    {
         const int32_t delta = 12;
-        if (tranparency_intermediate_ < target_transparency) {
+        if (tranparency_intermediate_ < target_transparency)
+        {
             tranparency_intermediate_ = min(target_transparency, tranparency_intermediate_ + delta);
-        } else if (tranparency_intermediate_ > target_transparency) {
+        }
+        else if (tranparency_intermediate_ > target_transparency)
+        {
             tranparency_intermediate_ = max(target_transparency, tranparency_intermediate_ - delta);
         }
     }
 
-    void update_transparency(int transparency = -1) {
-        if (host_config_->enable_transparency_active && host_config_->transparency != host_config_->transparency_active) {
-            if (tranparency_intermediate_ == -1) {
-                tranparency_intermediate_ = is_active() ? host_config_->transparency : host_config_->transparency_active;
-            } else if (transparency_timer_ == NULL) {
+    void update_transparency(int transparency = -1)
+    {
+        if (host_config_->enable_transparency_active && host_config_->transparency != host_config_->transparency_active)
+        {
+            if (tranparency_intermediate_ == -1)
+            {
+                tranparency_intermediate_ =
+                    is_active() ? host_config_->transparency : host_config_->transparency_active;
+            }
+            else if (transparency_timer_ == NULL)
+            {
                 transparency_timer_ = SetTimer(kTransparencyTimerID, 20);
                 return;
             }
         }
-        if (transparency_timer_ && transparency == -1) {
+        if (transparency_timer_ && transparency == -1)
+        {
             return;
         }
         PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency);
     }
 
-    void set_always_on_top(bool on_top) { SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{ 0 }, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE); }
+    void set_always_on_top(bool on_top)
+    {
+        SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{0}, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+    }
 
-    void bring_window_to_top() { PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top); }
+    void bring_window_to_top()
+    {
+        PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top);
+    }
 
-    void show_no_frame_shadow(bool show) {
-        if (flowin_utils::is_composition_enabled()) {
-            static const MARGINS extend_margins[2]{ { 0, 0, 0, 0 }, { 1, 1, 1, 1 } };
+    void show_no_frame_shadow(bool show)
+    {
+        if (flowin_utils::is_composition_enabled())
+        {
+            static const MARGINS extend_margins[2]{{0, 0, 0, 0}, {1, 1, 1, 1}};
             ::DwmExtendFrameIntoClientArea(get_wnd(), &extend_margins[show ? 1 : 0]);
         }
     }
 
-    void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false) {
-        MENUITEMINFOW mii = { 0 };
+    void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false)
+    {
+        MENUITEMINFOW mii = {0};
         mii.cbSize = sizeof(mii);
         mii.fMask = MIIM_DATA;
         mii.dwItemData = (ULONG_PTR)this;
-        if (id) {
+        if (id)
+        {
             mii.fMask |= MIIM_ID | MIIM_STRING | MIIM_STATE;
             mii.wID = id;
             mii.fState = (enabled ? MFS_ENABLED : MFS_DISABLED) | (checked ? MFS_CHECKED : MFS_UNCHECKED);
             mii.dwTypeData = const_cast<LPWSTR>(caption);
-        } else {
+        }
+        else
+        {
             mii.fType = MFT_SEPARATOR;
         }
         InsertMenuItemW(menu, SC_CLOSE, FALSE, &mii);
     }
 
-    void cleanup_system_menu() {
+    void cleanup_system_menu()
+    {
         HMENU menu = GetSystemMenu(FALSE);
-        do {
+        do
+        {
             int n, m = GetMenuItemCount(menu);
-            for (n = 0; n < m; ++n) {
-                MENUITEMINFOW mii = { 0 };
+            for (n = 0; n < m; ++n)
+            {
+                MENUITEMINFOW mii = {0};
                 mii.cbSize = sizeof(mii);
                 mii.fMask = MIIM_DATA | MIIM_SUBMENU;
                 GetMenuItemInfoW(menu, n, TRUE, &mii);
-                if (mii.dwItemData == (ULONG_PTR)this) {
+                if (mii.dwItemData == (ULONG_PTR)this)
+                {
                     if (mii.hSubMenu)
                         DestroyMenu(mii.hSubMenu);
                     DeleteMenu(menu, n, MF_BYPOSITION);
@@ -492,127 +678,152 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         } while (true);
     }
 
-    void build_context_menu(HMENU menu, bool sys_menu = true) {
+    void build_context_menu(HMENU menu, bool sys_menu = true)
+    {
         insert_menu(menu, t_menu_cmd_show_flowin_on_startup, L"Show on startup", true, host_config_->show_on_startup);
         insert_menu(menu, t_menu_cmd_always_on_top, L"Always on top", true, host_config_->always_on_top);
         insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No window frame", true, !host_config_->show_caption);
         insert_menu(menu, t_menu_cmd_show_in_taskbar, L"Show in the taskbar", true, host_config_->show_in_taskbar);
         insert_menu(menu, t_menu_cmd_snap_to_edge, L"Snap to screen edge", true, host_config_->enable_snap);
-        insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap, host_config_->enable_autohide_when_snapped);
+        insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap,
+                    host_config_->enable_autohide_when_snapped);
         insert_menu(menu, t_menu_cmd_edit_mode, L"Edit mode", true, host_config_->edit_mode);
         insert_menu(menu, t_menu_cmd_flowin_custom_title, L"Custom title");
         insert_menu(menu, t_menu_cmd_flowin_transparency, L"Transparency");
         insert_menu(menu, t_menu_cmd_destroy_element, L"Delete");
-        if (sys_menu) {
+        if (sys_menu)
+        {
             insert_menu(menu, 0, nullptr);
         }
     }
 
-    void execute_context_menu(int cmd, int param = 0) {
-        switch (cmd) {
-            case t_menu_cmd_show_flowin_on_startup:
-                host_config_->show_on_startup = !host_config_->show_on_startup;
-                break;
+    void execute_context_menu(int cmd, int param = 0)
+    {
+        switch (cmd)
+        {
+        case t_menu_cmd_show_flowin_on_startup:
+            host_config_->show_on_startup = !host_config_->show_on_startup;
+            break;
 
-            case t_menu_cmd_always_on_top:
-                host_config_->always_on_top = !host_config_->always_on_top;
-                set_always_on_top(host_config_->always_on_top);
-                break;
+        case t_menu_cmd_always_on_top:
+            host_config_->always_on_top = !host_config_->always_on_top;
+            set_always_on_top(host_config_->always_on_top);
+            break;
 
-            case t_menu_cmd_flowin_no_frame:
-                if (!host_config_->show_caption) {
-                    host_config_->show_caption = true;
-                    configure_window_style();
-                } else {
-                    bool apply_command = true;
-
-                    if (!param) {
-                        CNoFrameSettingsDialog dlg(host_config_);
-                        if (dlg.DoModal(*this) != IDOK) {
-                            apply_command = false;
-                        }
-                    }
-                    if (apply_command) {
-                        host_config_->show_caption = false;
-                        configure_window_style();
-                    }
-                }
-                break;
-
-            case t_menu_cmd_show_in_taskbar:
-                host_config_->show_in_taskbar = !host_config_->show_in_taskbar;
-                show_or_hide_in_taskbar(host_config_->show_in_taskbar);
+        case t_menu_cmd_flowin_no_frame:
+            if (!host_config_->show_caption)
+            {
+                host_config_->show_caption = true;
                 configure_window_style();
-                break;
+            }
+            else
+            {
+                bool apply_command = true;
 
-            case t_menu_cmd_snap_to_edge:
-                host_config_->enable_snap = !host_config_->enable_snap;
-                enable_window_snap_ = host_config_->enable_snap;
-                if (!enable_window_snap_) {
-                    RestoreFromSnapHidden();
-                }
-                break;
-
-            case t_menu_cmd_snap_auto_hide:
-                host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
-                enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
-                if (!enable_window_snap_auto_hide_) {
-                    RestoreFromSnapHidden();
-                }
-                break;
-
-            case t_menu_cmd_edit_mode:
-                host_config_->edit_mode = !host_config_->edit_mode;
-                if (has_child()) {
-                    element_inst_->notify(ui_element_notify_edit_mode_changed, 0, nullptr, 0);
-                }
-                break;
-
-            case t_menu_cmd_destroy_element: {
-                pfc::string8 element_name;
-                uGetWindowText(*this, element_name);
-                pfc::string_formatter msg;
-                msg << " You are about to delete \"" << uGetWindowText(*this).c_str() << "\".\n This action cannot be undone.  Do you want to continue?";
-                if (uMessageBox(*this, msg, "Warning", MB_OKCANCEL | MB_ICONWARNING) == IDOK) {
-                    fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin(this->host_config_->guid, true); });
-                }
-            } break;
-
-            case t_menu_cmd_flowin_custom_title: {
-                CCustomTitleDialog dlg(host_config_->window_title);
-                if (IDOK == dlg.DoModal(*this)) {
-                    if (host_config_->window_title.is_empty()) {
-                        if (has_child()) {
-                            ui_element::g_get_name(host_config_->window_title, element_inst_->get_guid());
-                        }
+                if (!param)
+                {
+                    CNoFrameSettingsDialog dlg(host_config_);
+                    if (dlg.DoModal(*this) != IDOK)
+                    {
+                        apply_command = false;
                     }
-                    ::uSetWindowText(*this, host_config_->window_title);
                 }
-            } break;
+                if (apply_command)
+                {
+                    host_config_->show_caption = false;
+                    configure_window_style();
+                }
+            }
+            break;
 
-            case t_menu_cmd_flowin_transparency: {
-                CTransparencySetDialog dlg(m_hWnd, host_config_);
-                dlg.DoModal(*this);
-                update_transparency();
-            } break;
+        case t_menu_cmd_show_in_taskbar:
+            host_config_->show_in_taskbar = !host_config_->show_in_taskbar;
+            show_or_hide_in_taskbar(host_config_->show_in_taskbar);
+            configure_window_style();
+            break;
 
-            case t_menu_cmd_flowin_reset_position: {
-                CenterWindow(core_api::get_main_window());
-                BringWindowToTop();
-            } break;
-
-            case t_menu_cmd_flowin_bring_to_top: {
+        case t_menu_cmd_snap_to_edge:
+            host_config_->enable_snap = !host_config_->enable_snap;
+            enable_window_snap_ = host_config_->enable_snap;
+            if (!enable_window_snap_)
+            {
                 RestoreFromSnapHidden();
-                set_always_on_top(!host_config_->always_on_top);
-                set_always_on_top(host_config_->always_on_top);
-            } break;
+            }
+            break;
 
-            default:
-                break;
+        case t_menu_cmd_snap_auto_hide:
+            host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
+            enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
+            if (!enable_window_snap_auto_hide_)
+            {
+                RestoreFromSnapHidden();
+            }
+            break;
+
+        case t_menu_cmd_edit_mode:
+            host_config_->edit_mode = !host_config_->edit_mode;
+            if (has_child())
+            {
+                element_inst_->notify(ui_element_notify_edit_mode_changed, 0, nullptr, 0);
+            }
+            break;
+
+        case t_menu_cmd_destroy_element: {
+            pfc::string8 element_name;
+            uGetWindowText(*this, element_name);
+            pfc::string_formatter msg;
+            msg << " You are about to delete \"" << uGetWindowText(*this).c_str()
+                << "\".\n This action cannot be undone.  Do you want to continue?";
+            if (uMessageBox(*this, msg, "Warning", MB_OKCANCEL | MB_ICONWARNING) == IDOK)
+            {
+                fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin(this->host_config_->guid, true); });
+            }
+        }
+        break;
+
+        case t_menu_cmd_flowin_custom_title: {
+            CCustomTitleDialog dlg(host_config_->window_title);
+            if (IDOK == dlg.DoModal(*this))
+            {
+                if (host_config_->window_title.is_empty())
+                {
+                    if (has_child())
+                    {
+                        ui_element::g_get_name(host_config_->window_title, element_inst_->get_guid());
+                    }
+                }
+                ::uSetWindowText(*this, host_config_->window_title);
+            }
+        }
+        break;
+
+        case t_menu_cmd_flowin_transparency: {
+            CTransparencySetDialog dlg(m_hWnd, host_config_);
+            dlg.DoModal(*this);
+            update_transparency();
+        }
+        break;
+
+        case t_menu_cmd_flowin_reset_position: {
+            CenterWindow(core_api::get_main_window());
+            BringWindowToTop();
+        }
+        break;
+
+        case t_menu_cmd_flowin_bring_to_top: {
+            RestoreFromSnapHidden();
+            set_always_on_top(!host_config_->always_on_top);
+            set_always_on_top(host_config_->always_on_top);
+        }
+        break;
+
+        default:
+            break;
         }
     }
 
-    void ajust_rect_to_primary_monitor(LPRECT rect, BOOL center = FALSE) {
+    void ajust_rect_to_primary_monitor(LPRECT rect, BOOL center = FALSE)
+    {
         LONG ww = rect->right - rect->left;
         LONG wh = rect->bottom - rect->top;
         HMONITOR mon = MonitorFromRect(rect, MONITOR_DEFAULTTONEAREST);
@@ -621,12 +832,15 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         mi.cbSize = sizeof(mi);
         WIN32_OP_D(GetMonitorInfo(mon, &mi));
         const RECT& rc = mi.rcWork;
-        if (center) {
+        if (center)
+        {
             rect->left = rc.left + (rc.right - rc.left - ww) / 2;
             rect->top = rc.top + (rc.bottom - rc.top - wh) / 2;
             rect->right = rect->left + ww;
             rect->bottom = rect->top + wh;
-        } else {
+        }
+        else
+        {
             rect->left = max(rc.left, min(rc.right - ww, rect->left));
             rect->top = max(rc.top, min(rc.bottom - wh, rect->top));
             rect->right = rect->left + ww;
@@ -634,19 +848,25 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
     }
 
-    void ajust_window_position(LPRECT rect = NULL, BOOL center = FALSE) {
+    void ajust_window_position(LPRECT rect = NULL, BOOL center = FALSE)
+    {
         RECT rc;
-        if (rect) {
+        if (rect)
+        {
             WIN32_OP_D(CopyRect(&rc, rect));
-        } else {
+        }
+        else
+        {
             WIN32_OP_D(GetWindowRect(&rc));
         }
         ajust_rect_to_primary_monitor(&rc, center);
         WIN32_OP_D(SetWindowPos(NULL, rect, SWP_NOZORDER | SWP_NOACTIVATE));
     }
 
-    void adjust_maximized_client_rect(LPRECT rect) {
-        if (flowin_utils::is_maximized(get_wnd())) {
+    void adjust_maximized_client_rect(LPRECT rect)
+    {
+        if (flowin_utils::is_maximized(get_wnd()))
+        {
             HMONITOR mon = MonitorFromWindow(get_wnd(), MONITOR_DEFAULTTONEAREST);
             WIN32_OP_D(mon != NULL);
             MONITORINFO mi;
@@ -656,22 +876,30 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         }
     }
 
-    void configure_window_style() {
+    void configure_window_style()
+    {
         // frame
         const DWORD rel_style = WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
-        if (is_cfg_no_frame()) {
+        if (is_cfg_no_frame())
+        {
             // window style
-            if (use_legacy_no_frame()) {
+            if (use_legacy_no_frame())
+            {
                 ModifyStyle(rel_style, 0);
-            } else {
+            }
+            else
+            {
                 ModifyStyle(0, rel_style);
                 show_no_frame_shadow(get_cfg_no_frame().shadowed);
             }
             // HACK
             // TODO snap in no frame mode not fully supported
             kSnapHideEdgeWidth = 2;
-        } else {
-            ModifyStyle(!host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0, rel_style | (host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0));
+        }
+        else
+        {
+            ModifyStyle(!host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0,
+                        rel_style | (host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0));
             show_no_frame_shadow(false);
             kSnapHideEdgeWidth = 8;
         }
@@ -680,12 +908,14 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
     }
 
-  private:
-    int on_create(LPCREATESTRUCT lpcs) {
+private:
+    int on_create(LPCREATESTRUCT lpcs)
+    {
         flowin_core::get()->register_flowin(m_hWnd, host_config_->guid);
 
         ui_config_manager::ptr api;
-        if (ui_config_manager::tryGet(api) && api->is_dark_mode()) {
+        if (ui_config_manager::tryGet(api) && api->is_dark_mode())
+        {
             dark_mode_hooks_.AddDialog(m_hWnd);
             dark_mode_hooks_.SetDark(true);
         }
@@ -693,20 +923,25 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         (VOID) GetSystemMenu(FALSE);
         (VOID) use_legacy_no_frame();
 
-        if (IsRectEmpty(&host_config_->window_rect)) {
+        if (IsRectEmpty(&host_config_->window_rect))
+        {
             CenterWindow(core_api::get_main_window());
-        } else {
+        }
+        else
+        {
             ajust_window_position(&host_config_->window_rect);
         }
         SetIcon(ui_control::get()->get_main_icon());
 
-        if (host_config_->window_title.is_empty()) {
+        if (host_config_->window_title.is_empty())
+        {
             g_get_name(host_config_->window_title);
         }
 
         ::uSetWindowText(*this, host_config_->window_title);
 
-        if (host_config_->subelement_guid != pfc::guid_null) {
+        if (host_config_->subelement_guid != pfc::guid_null)
+        {
             host_replace_element(0, host_config_->subelement_guid);
         }
 
@@ -718,37 +953,44 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         enable_window_snap_ = host_config_->enable_snap;
         enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
 
-        if (!host_config_->show_in_taskbar) {
+        if (!host_config_->show_in_taskbar)
+        {
             show_or_hide_in_taskbar(false);
         }
 
-        if (is_transparency_enabled()) {
+        if (is_transparency_enabled())
+        {
             update_transparency();
         }
 
-        if (!host_config_->always_on_top) {
+        if (!host_config_->always_on_top)
+        {
             bring_window_to_top();
         }
 
         return TRUE;
     }
 
-    void on_close() {
+    void on_close()
+    {
         ShowWindow(SW_HIDE);
         SendMessage(UWM_FLOWIN_REFRESH_CONFIG);
         SetMsgHandled(FALSE);
     }
 
-    void on_destroy() {
+    void on_destroy()
+    {
         flowin_core::get()->remove_flowin(host_config_->guid);
         host_config_.reset();
         SetMsgHandled(FALSE);
     }
 
-    void on_paint(CDCHandle /*dc*/) {
+    void on_paint(CDCHandle /*dc*/)
+    {
         CPaintDC dc(*this);
         t_ui_color text_color;
-        if (!callback_->query_color(ui_color_text, text_color)) {
+        if (!callback_->query_color(ui_color_text, text_color))
+        {
             text_color = GetSysColor(COLOR_BTNTEXT);
         }
         dc.SetTextColor(text_color);
@@ -759,12 +1001,14 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         dc.DrawText(_T("Click to add new element."), -1, &rc, DT_NOPREFIX | DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
 
-    BOOL on_erase_bkgnd(CDCHandle dc) {
+    BOOL on_erase_bkgnd(CDCHandle dc)
+    {
         CRect rc;
         GetClientRect(&rc);
         CBrush brush;
         t_ui_color background_color;
-        if (!callback_->query_color(ui_color_background, background_color)) {
+        if (!callback_->query_color(ui_color_background, background_color))
+        {
             background_color = GetSysColor(COLOR_BTNFACE);
         }
         brush.CreateSolidBrush(background_color);
@@ -772,42 +1016,55 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return TRUE;
     }
 
-    void on_active(UINT state, BOOL /*minimized*/, CWindow /*wnd_other*/) {
-        if (is_transparency_enabled()) {
+    void on_active(UINT state, BOOL /*minimized*/, CWindow /*wnd_other*/)
+    {
+        if (is_transparency_enabled())
+        {
             static bool first_time_active = true;
-            if (first_time_active) {
+            if (first_time_active)
+            {
                 PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, -1);
                 first_time_active = false;
-            } else {
+            }
+            else
+            {
                 update_transparency();
             }
         }
         flowin_core::get()->set_latest_active_flowin(host_config_->guid);
     }
 
-    void on_lbutton_up(UINT flags, CPoint point) {
-        if (!has_child()) {
+    void on_lbutton_up(UINT flags, CPoint point)
+    {
+        if (!has_child())
+        {
             replace_dialog(*this, 0, pfc::guid_null);
         }
     }
 
-    void on_mbutton_down(UINT flags, CPoint point) {
+    void on_mbutton_down(UINT flags, CPoint point)
+    {
         GetCursorPos(&drag_point_);
-        if (is_cfg_no_frame() && get_cfg_no_frame().draggable) {
+        if (is_cfg_no_frame() && get_cfg_no_frame().draggable)
+        {
             SetCapture();
             is_perform_drag_ = true;
         }
     }
 
-    void on_mbutton_up(UINT flags, CPoint point) {
-        if (is_perform_drag_) {
+    void on_mbutton_up(UINT flags, CPoint point)
+    {
+        if (is_perform_drag_)
+        {
             ReleaseCapture();
             is_perform_drag_ = false;
         }
     }
 
-    void on_mouse_move(UINT flags, CPoint point) {
-        if ((flags & MK_MBUTTON) && is_perform_drag_) {
+    void on_mouse_move(UINT flags, CPoint point)
+    {
+        if ((flags & MK_MBUTTON) && is_perform_drag_)
+        {
             POINT pt{};
             GetCursorPos(&pt);
             RECT rect;
@@ -820,72 +1077,95 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         SetMsgHandled(FALSE);
     }
 
-    void on_context_menu(CWindow wnd, CPoint point) {
+    void on_context_menu(CWindow wnd, CPoint point)
+    {
         RECT rect_client;
         GetClientRect(&rect_client);
         ClientToScreen(&rect_client);
         SetMsgHandled(FALSE);
-        if (!PtInRect(&rect_client, point)) {
+        if (!PtInRect(&rect_client, point))
+        {
             return;
         }
-        if (!callback_->is_edit_mode_enabled() && has_child()) {
+        if (!callback_->is_edit_mode_enabled() && has_child())
+        {
             return;
         }
-        auto inst = has_child() ? element_inst_ : ui_element_helpers::instantiate_dummy(*this, ui_element_config::g_create_empty(), callback_);
+        auto inst = has_child()
+                        ? element_inst_
+                        : ui_element_helpers::instantiate_dummy(*this, ui_element_config::g_create_empty(), callback_);
         standard_edit_context_menu(MAKELPARAM(point.x, point.y), inst, 0, *this);
         SetMsgHandled(TRUE);
     }
 
-    void on_init_menu_popup(CMenuHandle menu, UINT idx, BOOL sys_menu) {
-        if (sys_menu && menu.m_hMenu == GetSystemMenu(FALSE)) {
+    void on_init_menu_popup(CMenuHandle menu, UINT idx, BOOL sys_menu)
+    {
+        if (sys_menu && menu.m_hMenu == GetSystemMenu(FALSE))
+        {
             cleanup_system_menu();
             build_context_menu(menu);
         }
     }
 
-    void on_sys_command(UINT id, CPoint /*point*/) {
+    void on_sys_command(UINT id, CPoint /*point*/)
+    {
         execute_context_menu(id);
         SetMsgHandled(FALSE);
     }
 
-    void on_show_window(BOOL show, UINT /*status*/) {
-        if (has_child()) {
+    void on_show_window(BOOL show, UINT /*status*/)
+    {
+        if (has_child())
+        {
             element_inst_->notify(ui_element_notify_visibility_changed, (t_size) !!show, nullptr, 0);
         }
     }
 
-    void on_size(UINT type, CSize size) {
-        if (has_child()) {
+    void on_size(UINT type, CSize size)
+    {
+        if (has_child())
+        {
             CRect rc;
             GetClientRect(&rc);
-            if (is_cfg_no_frame() && get_cfg_no_frame().resizable) {
+            if (is_cfg_no_frame() && get_cfg_no_frame().resizable)
+            {
                 InflateRect(&rc, -2, -2);
             }
-            ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, rc.left, rc.top, rc.Width(), rc.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
+            ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, rc.left, rc.top, rc.Width(), rc.Height(),
+                           SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
         }
     }
 
-    LRESULT on_nc_calc_size(BOOL calc_valid_rect, LPARAM param) {
-        if (!is_cfg_no_frame()) {
+    LRESULT on_nc_calc_size(BOOL calc_valid_rect, LPARAM param)
+    {
+        if (!is_cfg_no_frame())
+        {
             SetMsgHandled(FALSE);
-        } else if (!calc_valid_rect || use_legacy_no_frame()) {
+        }
+        else if (!calc_valid_rect || use_legacy_no_frame())
+        {
             SetMsgHandled(FALSE);
-        } else {
+        }
+        else
+        {
             LPNCCALCSIZE_PARAMS lpnccs_params = reinterpret_cast<LPNCCALCSIZE_PARAMS>(param);
             adjust_maximized_client_rect(lpnccs_params->rgrc);
         }
         return 0;
     }
 
-    UINT on_nc_hittest(CPoint point) {
-        if (!is_cfg_no_frame()) {
+    UINT on_nc_hittest(CPoint point)
+    {
+        if (!is_cfg_no_frame())
+        {
             SetMsgHandled(FALSE);
             return 0;
         }
 
         UINT res = HTCLIENT;
 
-        if (!get_cfg_no_frame().resizable) {
+        if (!get_cfg_no_frame().resizable)
+        {
             return res;
         }
 
@@ -896,44 +1176,54 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         WIN32_OP_D(GetWindowRect(&rect_window));
 
         // left & right
-        if (point.x <= rect_window.left + cx) {
+        if (point.x <= rect_window.left + cx)
+        {
             res = HTLEFT;
-        } else if (point.x >= (rect_window.right - cx)) {
+        }
+        else if (point.x >= (rect_window.right - cx))
+        {
             res = HTRIGHT;
         }
 
         // top & bottom
-        if (point.y <= rect_window.top + cy) {
-            switch (res) {
-                case HTLEFT:
-                    res = HTTOPLEFT;
-                    break;
-                case HTRIGHT:
-                    res = HTTOPRIGHT;
-                    break;
-                default:
-                    res = HTTOP;
-                    break;
+        if (point.y <= rect_window.top + cy)
+        {
+            switch (res)
+            {
+            case HTLEFT:
+                res = HTTOPLEFT;
+                break;
+            case HTRIGHT:
+                res = HTTOPRIGHT;
+                break;
+            default:
+                res = HTTOP;
+                break;
             }
-        } else if (point.y >= (rect_window.bottom - cy)) {
-            switch (res) {
-                case HTLEFT:
-                    res = HTBOTTOMLEFT;
-                    break;
-                case HTRIGHT:
-                    res = HTBOTTOMRIGHT;
-                    break;
-                default:
-                    res = HTBOTTOM;
-                    break;
+        }
+        else if (point.y >= (rect_window.bottom - cy))
+        {
+            switch (res)
+            {
+            case HTLEFT:
+                res = HTBOTTOMLEFT;
+                break;
+            case HTRIGHT:
+                res = HTBOTTOMRIGHT;
+                break;
+            default:
+                res = HTBOTTOM;
+                break;
             }
         }
 
         return res;
     }
 
-    BOOL on_nc_active(BOOL active) {
-        if (is_cfg_no_frame() && !flowin_utils::is_composition_enabled()) {
+    BOOL on_nc_active(BOOL active)
+    {
+        if (is_cfg_no_frame() && !flowin_utils::is_composition_enabled())
+        {
             return TRUE;
         }
 
@@ -941,38 +1231,53 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         return FALSE;
     }
 
-    BOOL on_set_cursor(CWindow /*wnd*/, UINT hittest, UINT message) {
-        if (!is_cfg_no_frame() || !use_legacy_no_frame()) {
+    BOOL on_set_cursor(CWindow /*wnd*/, UINT hittest, UINT message)
+    {
+        if (!is_cfg_no_frame() || !use_legacy_no_frame())
+        {
             SetMsgHandled(FALSE);
             return FALSE;
         }
 
-        if (hittest == HTCLIENT) {
+        if (hittest == HTCLIENT)
+        {
             SetMsgHandled(FALSE);
             return FALSE;
         }
 
-        if (hittest == HTTOP || hittest == HTBOTTOM) {
+        if (hittest == HTTOP || hittest == HTBOTTOM)
+        {
             SetCursor(LoadCursor(NULL, IDC_SIZENS));
-        } else if (hittest == HTLEFT || hittest == HTRIGHT) {
+        }
+        else if (hittest == HTLEFT || hittest == HTRIGHT)
+        {
             SetCursor(LoadCursor(NULL, IDC_SIZEWE));
-        } else if (hittest == HTTOPLEFT || hittest == HTBOTTOMRIGHT) {
+        }
+        else if (hittest == HTTOPLEFT || hittest == HTBOTTOMRIGHT)
+        {
             SetCursor(LoadCursor(NULL, IDC_SIZENWSE));
-        } else if (hittest == HTTOPRIGHT || hittest == HTBOTTOMLEFT) {
+        }
+        else if (hittest == HTTOPRIGHT || hittest == HTBOTTOMLEFT)
+        {
             SetCursor(LoadCursor(NULL, IDC_SIZENESW));
-        } else {
+        }
+        else
+        {
             SetCursor(LoadCursor(NULL, IDC_ARROW));
         }
 
         return TRUE;
     }
 
-    void on_timer(UINT_PTR id) {
-        if (id == kTransparencyTimerID) {
+    void on_timer(UINT_PTR id)
+    {
+        if (id == kTransparencyTimerID)
+        {
             uint32_t target_transparency = is_active() ? host_config_->transparency_active : host_config_->transparency;
             calc_intermediate_transparency(target_transparency);
             update_transparency(tranparency_intermediate_);
-            if (tranparency_intermediate_ == target_transparency) {
+            if (tranparency_intermediate_ == target_transparency)
+            {
                 KillTimer(id);
                 transparency_timer_ = NULL;
             }
@@ -982,53 +1287,66 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
         SetMsgHandled(FALSE);
     }
 
-    LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM lp) {
+    LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM lp)
+    {
         execute_context_menu((t_uint32)wp, (int)lp);
         return TRUE;
     }
 
-    LRESULT on_refresh_config(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+    LRESULT on_refresh_config(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/)
+    {
         GetSnapWindowRect(&host_config_->window_rect);
-        if (has_child()) {
+        if (has_child())
+        {
             host_config_->write_subelement(element_inst_->get_configuration());
         }
         return TRUE;
     }
 
-    LRESULT on_active_flowin(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+    LRESULT on_active_flowin(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/)
+    {
         BringWindowToTop();
         return TRUE;
     }
 
-    LRESULT on_update_transparency(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/) {
+    LRESULT on_update_transparency(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/)
+    {
         ModifyStyleEx(0, WS_EX_LAYERED);
         int transparency = (int)wp;
         BYTE alpha = 0;
-        if (transparency >= 0) {
+        if (transparency >= 0)
+        {
             alpha = (BYTE)(255.0 - transparency * 255.0 / 100);
-        } else if (host_config_->enable_transparency_active && GetActiveWindow() == m_hWnd) {
+        }
+        else if (host_config_->enable_transparency_active && GetActiveWindow() == m_hWnd)
+        {
             alpha = (BYTE)(255.0 - host_config_->transparency_active * 255.0 / 100);
-        } else {
+        }
+        else
+        {
             alpha = (BYTE)(255.0 - host_config_->transparency * 255.0 / 100);
         }
         SetLayeredWindowAttributes(*this, 0, alpha, LWA_ALPHA);
         return TRUE;
     }
 
-    LRESULT on_repaint(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+    LRESULT on_repaint(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/)
+    {
         InvalidateRect(nullptr);
         return 0;
     }
 
-    LRESULT on_ui_color_changed(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/) {
+    LRESULT on_ui_color_changed(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/)
+    {
         ui_config_manager::ptr api;
-        if (ui_config_manager::tryGet(api)) {
+        if (ui_config_manager::tryGet(api))
+        {
             dark_mode_hooks_.SetDark(api->is_dark_mode());
         }
         return 0;
     }
 
-  private:
+private:
     // fix me. not standard impl
     ui_element_config::ptr dummy_config_;
     ui_element_instance_ptr element_inst_;
@@ -1042,10 +1360,14 @@ class flowin_host : public ui_element_helpers::ui_element_instance_host_base,
     DarkMode::CHooks dark_mode_hooks_;
 };
 
-class ui_element_flowin_host_impl : public ui_element_impl<flowin_host> {
-  public:
-    bool is_user_addable() { return false; }
+class ui_element_flowin_host_impl : public ui_element_impl<flowin_host>
+{
+public:
+    bool is_user_addable()
+    {
+        return false;
+    }
 };
 
 static service_factory_single_t<ui_element_flowin_host_impl> g_ui_element_dummy_impl_factory;
-}  // namespace
+} // namespace

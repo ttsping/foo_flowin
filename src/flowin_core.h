@@ -6,8 +6,9 @@
 class flowin_core;
 using flowin_core_ptr = std::shared_ptr<flowin_core>;
 
-class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_this<flowin_core> {
-  public:
+class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_this<flowin_core>
+{
+public:
     static flowin_core_ptr get();
 
     // cfg_flowin_callback
@@ -26,7 +27,10 @@ class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_t
     void set_latest_active_flowin(const GUID& host_guid);
     GUID get_latest_active_flowin() const;
 
-    void set_instance_callback(ui_element_instance_callback_ptr callback) { callback_ = callback; }
+    void set_instance_callback(ui_element_instance_callback_ptr callback)
+    {
+        callback_ = callback;
+    }
 
     void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size);
 
@@ -46,7 +50,7 @@ class flowin_core : public cfg_flowin_callback, public std::enable_shared_from_t
     BOOL post_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
     BOOL send_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
 
-  private:
+private:
     ui_element_instance_callback_ptr callback_;
     service_list_t<ui_element_instance> flowin_hosts_;
     ui_element_popup_host::ptr dummy_element_inst_;

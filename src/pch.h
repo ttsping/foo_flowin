@@ -20,4 +20,4 @@
 
 #include "sdk/foobar2000/SDK/foobar2000.h"
 
-#endif //PCH_H
+#endif // PCH_H

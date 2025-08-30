@@ -12,16 +12,18 @@
 #define UWM_MOUSEENTER (WM_USER + 998)
 #define UWM_MOUSELEAVE (WM_USER + 999)
 
-template<typename T>
-class CSnapWindow {
-  private:
-    enum {
+template <typename T> class CSnapWindow
+{
+private:
+    enum
+    {
         SNAP_TIMER_ID = 0x1102,
         MOUSE_CHECK_TIMER_ID,
     };
 
-  protected:
-    enum SNAP_STATE {
+protected:
+    enum SNAP_STATE
+    {
         SNAP_INVALID = -1,
         SNAP_NONE = 0,
         SNAP_LEFT,
@@ -30,8 +32,11 @@ class CSnapWindow {
         SNAP_BOTTOM,
     };
 
-  public:
-    CSnapWindow() { UpdateDPI(); }
+public:
+    CSnapWindow()
+    {
+        UpdateDPI();
+    }
     BEGIN_MSG_MAP(CSnapWindow)
         MESSAGE_HANDLER(WM_MOVING, OnMoving)
         MESSAGE_HANDLER(WM_ENTERSIZEMOVE, OnEnterSizeMove)
@@ -44,23 +49,32 @@ class CSnapWindow {
         MESSAGE_HANDLER(UWM_MOUSELEAVE, OnMouseLeave)
     END_MSG_MAP()
 
-  public:
-    inline HWND GetHWnd() { return static_cast<T*>(this)->m_hWnd; }
+public:
+    inline HWND GetHWnd()
+    {
+        return static_cast<T*>(this)->m_hWnd;
+    }
 
-    BOOL IsMouseInWindow() {
+    BOOL IsMouseInWindow()
+    {
         POINT pt;
         GetCursorPos(&pt);
         HWND hMyWnd = GetHWnd();
         HWND hWnd = WindowFromPoint(pt);
-        while (hWnd && hWnd != hMyWnd) {
+        while (hWnd && hWnd != hMyWnd)
+        {
             hWnd = GetParent(hWnd);
         }
 
-        if (hWnd == NULL) {
-            GUITHREADINFO gui_info = { 0 };
+        if (hWnd == NULL)
+        {
+            GUITHREADINFO gui_info = {0};
             gui_info.cbSize = sizeof(gui_info);
-            if (GetGUIThreadInfo(GetWindowThreadProcessId(hMyWnd, nullptr), &gui_info)) {
-                if (gui_info.hwndMenuOwner && (gui_info.hwndMenuOwner == hMyWnd || IsChild(hMyWnd, gui_info.hwndMenuOwner))) {
+            if (GetGUIThreadInfo(GetWindowThreadProcessId(hMyWnd, nullptr), &gui_info))
+            {
+                if (gui_info.hwndMenuOwner &&
+                    (gui_info.hwndMenuOwner == hMyWnd || IsChild(hMyWnd, gui_info.hwndMenuOwner)))
+                {
                     hWnd = gui_info.hwndMenuOwner;
                 }
             }
@@ -68,31 +82,39 @@ class CSnapWindow {
         return hWnd != NULL;
     }
 
-  protected:
-    LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/) {
+protected:
+    LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/)
+    {
         if (!enable_window_snap_)
             return FALSE;
         LPRECT prc = (LPRECT)lp;
-        RECT rect_work = { 0 };
+        RECT rect_work = {0};
         if (!GetWorkAreaRect(&rect_work))
             return FALSE;
         RECT rect = *prc;
         POINT pt;
-        if (GetCursorPos(&pt)) {
+        if (GetCursorPos(&pt))
+        {
             OffsetRect(&rect, pt.x - (rect.left + snap_dx_), pt.y - (rect.top + snap_dy_));
         }
 
         // left && right
-        if (DetectSnap(rect.left, rect_work.left)) {
+        if (DetectSnap(rect.left, rect_work.left))
+        {
             OffsetRect(&rect, rect_work.left - rect.left, 0);
-        } else if (DetectSnap(rect.right, rect_work.right)) {
+        }
+        else if (DetectSnap(rect.right, rect_work.right))
+        {
             OffsetRect(&rect, rect_work.right - rect.right, 0);
         }
 
         // top && bottom
-        if (DetectSnap(rect.top, rect_work.top)) {
+        if (DetectSnap(rect.top, rect_work.top))
+        {
             OffsetRect(&rect, 0, rect_work.top - rect.top);
-        } else if (DetectSnap(rect.bottom, rect_work.bottom)) {
+        }
+        else if (DetectSnap(rect.bottom, rect_work.bottom))
+        {
             OffsetRect(&rect, 0, rect_work.bottom - rect.bottom);
         }
 
@@ -100,40 +122,51 @@ class CSnapWindow {
         return TRUE;
     }
 
-    LRESULT OnEnterSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnEnterSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         if (!enable_window_snap_)
             return 1;
         snap_state_ = SNAP_NONE;
         RECT rect;
         POINT pt;
-        if (::GetWindowRect(GetHWnd(), &rect) && GetCursorPos(&pt)) {
+        if (::GetWindowRect(GetHWnd(), &rect) && GetCursorPos(&pt))
+        {
             snap_dx_ = pt.x - rect.left;
             snap_dy_ = pt.y - rect.top;
         }
         return 0;
     }
 
-    LRESULT OnExitSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnExitSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         snap_state_ = CheckSnapState();
         return 0;
     }
 
-    LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
-        if (enable_window_snap_auto_hide_ && !mouse_check_timer_) {
+    LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
+        if (enable_window_snap_auto_hide_ && !mouse_check_timer_)
+        {
             ::PostMessage(GetHWnd(), UWM_MOUSEENTER, 0, 0);
             StartMouseCheckTimer();
         }
         return 0;
     }
 
-    LRESULT OnMouseEnter(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnMouseEnter(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         mouse_in_window_ = TRUE;
-        if (enable_window_snap_auto_hide_) {
-            if (snap_state_ == SNAP_INVALID) {
+        if (enable_window_snap_auto_hide_)
+        {
+            if (snap_state_ == SNAP_INVALID)
+            {
                 snap_state_ = CheckSnapState();
-            } else if (snap_state_ != SNAP_NONE) {
+            }
+            else if (snap_state_ != SNAP_NONE)
+            {
                 SNAP_STATE state = CheckSnapState();
-                if (state != snap_state_) {
+                if (state != snap_state_)
+                {
                     StartSnapAnimateTimer();
                 }
             }
@@ -141,47 +174,55 @@ class CSnapWindow {
         return 0;
     }
 
-    LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         mouse_in_window_ = FALSE;
-        if (snap_state_ != SNAP_NONE) {
+        if (snap_state_ != SNAP_NONE)
+        {
             StartSnapAnimateTimer();
         }
         return 0;
     }
 
-    LRESULT OnTimer(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnTimer(UINT /*msg*/, WPARAM wp, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         UINT_PTR id = (UINT_PTR)wp;
-        switch (id) {
-            case SNAP_TIMER_ID:
-                if (!AnimateSnappedWindow(mouse_in_window_)) {
-                    KillSnapAnimateTimer();
-                }
-                return 0;
+        switch (id)
+        {
+        case SNAP_TIMER_ID:
+            if (!AnimateSnappedWindow(mouse_in_window_))
+            {
+                KillSnapAnimateTimer();
+            }
+            return 0;
 
-            case MOUSE_CHECK_TIMER_ID:
-                if (!IsMouseInWindow()) {
-                    ::PostMessage(GetHWnd(), UWM_MOUSELEAVE, 0, 0);
-                    KillMouseCheckTimer();
-                }
-                return 0;
-            default:
-                break;
+        case MOUSE_CHECK_TIMER_ID:
+            if (!IsMouseInWindow())
+            {
+                ::PostMessage(GetHWnd(), UWM_MOUSELEAVE, 0, 0);
+                KillMouseCheckTimer();
+            }
+            return 0;
+        default:
+            break;
         }
         return 1;
     }
 
-    LRESULT OnDPIChanged(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/) {
+    LRESULT OnDPIChanged(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
+    {
         UpdateDPI();
         return TRUE;
     }
 
-  protected:
-    SNAP_STATE CheckSnapState() {
+protected:
+    SNAP_STATE CheckSnapState()
+    {
         RECT rect;
         if (!::GetWindowRect(GetHWnd(), &rect))
             return SNAP_NONE;
 
-        RECT rect_work = { 0 };
+        RECT rect_work = {0};
         if (!GetWorkAreaRect(&rect_work))
             return SNAP_NONE;
 
@@ -197,79 +238,95 @@ class CSnapWindow {
         return SNAP_NONE;
     }
 
-    BOOL GetSnapWindowRect(LPRECT prc) {
+    BOOL GetSnapWindowRect(LPRECT prc)
+    {
         if (!::GetWindowRect(GetHWnd(), prc))
             return FALSE;
-        RECT rect_work = { 0 };
+        RECT rect_work = {0};
         if (!GetWorkAreaRect(&rect_work))
-            return TRUE;  // use current rect
+            return TRUE; // use current rect
         int ww = prc->right - prc->left;
         int wh = prc->bottom - prc->top;
-        switch (snap_state_) {
-            case SNAP_LEFT:
-                prc->left = rect_work.left;
-                prc->right = prc->left + ww;
-                break;
+        switch (snap_state_)
+        {
+        case SNAP_LEFT:
+            prc->left = rect_work.left;
+            prc->right = prc->left + ww;
+            break;
 
-            case SNAP_TOP:
-                prc->top = rect_work.top;
-                prc->bottom = prc->top + wh;
-                break;
+        case SNAP_TOP:
+            prc->top = rect_work.top;
+            prc->bottom = prc->top + wh;
+            break;
 
-            case SNAP_RIGHT:
-                prc->right = rect_work.right;
-                prc->left = prc->right - ww;
-                break;
+        case SNAP_RIGHT:
+            prc->right = rect_work.right;
+            prc->left = prc->right - ww;
+            break;
 
-            case SNAP_BOTTOM:
-                prc->bottom = rect_work.bottom;
-                prc->top = prc->bottom - wh;
-                break;
+        case SNAP_BOTTOM:
+            prc->bottom = rect_work.bottom;
+            prc->top = prc->bottom - wh;
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
         return TRUE;
     }
 
-    VOID RestoreFromSnapHidden() {
-        if (snap_state_ != SNAP_NONE) {
-            RECT rect = { 0 };
-            if (GetSnapWindowRect(&rect)) {
-                ::SetWindowPos(GetHWnd(), HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    VOID RestoreFromSnapHidden()
+    {
+        if (snap_state_ != SNAP_NONE)
+        {
+            RECT rect = {0};
+            if (GetSnapWindowRect(&rect))
+            {
+                ::SetWindowPos(GetHWnd(), HWND_TOP, rect.left, rect.top, 0, 0,
+                               SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             }
         }
     }
 
-  private:
-    inline VOID StartSnapAnimateTimer() {
-        if (snap_timer_ == NULL) {
+private:
+    inline VOID StartSnapAnimateTimer()
+    {
+        if (snap_timer_ == NULL)
+        {
             snap_timer_ = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, USER_TIMER_MINIMUM, NULL);
         }
     }
 
-    inline VOID KillSnapAnimateTimer() {
-        if (snap_timer_) {
+    inline VOID KillSnapAnimateTimer()
+    {
+        if (snap_timer_)
+        {
             ::KillTimer(GetHWnd(), snap_timer_);
             snap_timer_ = NULL;
         }
     }
 
-    inline VOID StartMouseCheckTimer() {
-        if (mouse_check_timer_ == NULL) {
+    inline VOID StartMouseCheckTimer()
+    {
+        if (mouse_check_timer_ == NULL)
+        {
             mouse_check_timer_ = ::SetTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID, 100, NULL);
         }
     }
 
-    inline VOID KillMouseCheckTimer() {
-        if (mouse_check_timer_) {
+    inline VOID KillMouseCheckTimer()
+    {
+        if (mouse_check_timer_)
+        {
             ::KillTimer(GetHWnd(), mouse_check_timer_);
             mouse_check_timer_ = NULL;
         }
     }
 
-    VOID UpdateDPI() {
-        if (HDC dc = ::GetDC(NULL)) {
+    VOID UpdateDPI()
+    {
+        if (HDC dc = ::GetDC(NULL))
+        {
             dpi_ = GetDeviceCaps(dc, LOGPIXELSX);
             snap_detect_val_ = MulDiv(16, dpi_, 96);
             snap_move_delta_ = MulDiv(kSnapMoveDelta, dpi_, 96);
@@ -277,14 +334,20 @@ class CSnapWindow {
         }
     }
 
-    inline BOOL DetectSnap(int x1, int x2) { return std::abs(x1 - x2) < snap_detect_val_; }
+    inline BOOL DetectSnap(int x1, int x2)
+    {
+        return std::abs(x1 - x2) < snap_detect_val_;
+    }
 
-    BOOL GetWorkAreaRect(LPRECT prc) {
+    BOOL GetWorkAreaRect(LPRECT prc)
+    {
         ZeroMemory(prc, sizeof(prc));
-        if (HMONITOR h = MonitorFromRect(prc, MONITOR_DEFAULTTONEAREST)) {
-            MONITORINFO mi = { 0 };
+        if (HMONITOR h = MonitorFromRect(prc, MONITOR_DEFAULTTONEAREST))
+        {
+            MONITORINFO mi = {0};
             mi.cbSize = sizeof(mi);
-            if (GetMonitorInfoW(h, &mi)) {
+            if (GetMonitorInfoW(h, &mi))
+            {
                 ::CopyRect(prc, &mi.rcWork);
                 return TRUE;
             }
@@ -293,12 +356,13 @@ class CSnapWindow {
         return SystemParametersInfo(SPI_GETWORKAREA, 0, prc, 0);
     }
 
-    BOOL AnimateSnappedWindow(BOOL revert = FALSE) {
+    BOOL AnimateSnappedWindow(BOOL revert = FALSE)
+    {
         RECT rect;
         HWND window = GetHWnd();
         if (!::GetWindowRect(window, &rect))
             return FALSE;
-        RECT rect_work = { 0 };
+        RECT rect_work = {0};
         if (!GetWorkAreaRect(&rect_work))
             return FALSE;
 
@@ -313,80 +377,102 @@ class CSnapWindow {
         int ww = rect.right - rect.left;
         int wh = rect.bottom - rect.top;
 
-        switch (snap_state_) {
-            case SNAP_LEFT:
-                if (revert) {
-                    if (rect.left > rect_work.left) {
-                        rect.left = rect_work.left;
-                        rect.right = rect.left + ww;
-                        animate_continue = FALSE;
-                    }
-                } else {
-                    if (rect.right - rect_work.left < kSnapHideEdgeWidth) {
-                        rect.right = rect_work.left + kSnapHideEdgeWidth;
-                        rect.left = rect.right - ww;
-                        animate_continue = FALSE;
-                    }
+        switch (snap_state_)
+        {
+        case SNAP_LEFT:
+            if (revert)
+            {
+                if (rect.left > rect_work.left)
+                {
+                    rect.left = rect_work.left;
+                    rect.right = rect.left + ww;
+                    animate_continue = FALSE;
                 }
-                break;
-
-            case SNAP_TOP:
-                if (revert) {
-                    if (rect.top > rect_work.top) {
-                        rect.top = rect_work.top;
-                        rect.bottom = rect.top + wh;
-                        animate_continue = FALSE;
-                    }
-                } else {
-                    if (rect.bottom - rect_work.top < kSnapHideEdgeWidth) {
-                        rect.bottom = rect_work.top + kSnapHideEdgeWidth;
-                        rect.top = rect.bottom - wh;
-                        animate_continue = FALSE;
-                    }
+            }
+            else
+            {
+                if (rect.right - rect_work.left < kSnapHideEdgeWidth)
+                {
+                    rect.right = rect_work.left + kSnapHideEdgeWidth;
+                    rect.left = rect.right - ww;
+                    animate_continue = FALSE;
                 }
-                break;
+            }
+            break;
 
-            case SNAP_RIGHT:
-                if (revert) {
-                    if (rect.right < rect_work.right) {
-                        rect.right = rect_work.right;
-                        rect.left = rect.right - ww;
-                        animate_continue = FALSE;
-                    }
-                } else {
-                    if (rect_work.right - rect.left < kSnapHideEdgeWidth) {
-                        rect.left = rect_work.right - kSnapHideEdgeWidth;
-                        rect.right = rect.left + ww;
-                        animate_continue = FALSE;
-                    }
+        case SNAP_TOP:
+            if (revert)
+            {
+                if (rect.top > rect_work.top)
+                {
+                    rect.top = rect_work.top;
+                    rect.bottom = rect.top + wh;
+                    animate_continue = FALSE;
                 }
-                break;
-
-            case SNAP_BOTTOM:
-                if (revert) {
-                    if (rect.bottom < rect_work.bottom) {
-                        rect.bottom = rect_work.bottom;
-                        rect.top = rect.bottom - wh;
-                        animate_continue = FALSE;
-                    }
-                } else {
-                    if (rect_work.bottom - rect.top < kSnapHideEdgeWidth) {
-                        rect.top = rect_work.bottom - kSnapHideEdgeWidth;
-                        rect.bottom = rect.top + wh;
-                        animate_continue = FALSE;
-                    }
+            }
+            else
+            {
+                if (rect.bottom - rect_work.top < kSnapHideEdgeWidth)
+                {
+                    rect.bottom = rect_work.top + kSnapHideEdgeWidth;
+                    rect.top = rect.bottom - wh;
+                    animate_continue = FALSE;
                 }
-                break;
+            }
+            break;
 
-            default:
-                break;
+        case SNAP_RIGHT:
+            if (revert)
+            {
+                if (rect.right < rect_work.right)
+                {
+                    rect.right = rect_work.right;
+                    rect.left = rect.right - ww;
+                    animate_continue = FALSE;
+                }
+            }
+            else
+            {
+                if (rect_work.right - rect.left < kSnapHideEdgeWidth)
+                {
+                    rect.left = rect_work.right - kSnapHideEdgeWidth;
+                    rect.right = rect.left + ww;
+                    animate_continue = FALSE;
+                }
+            }
+            break;
+
+        case SNAP_BOTTOM:
+            if (revert)
+            {
+                if (rect.bottom < rect_work.bottom)
+                {
+                    rect.bottom = rect_work.bottom;
+                    rect.top = rect.bottom - wh;
+                    animate_continue = FALSE;
+                }
+            }
+            else
+            {
+                if (rect_work.bottom - rect.top < kSnapHideEdgeWidth)
+                {
+                    rect.top = rect_work.bottom - kSnapHideEdgeWidth;
+                    rect.bottom = rect.top + wh;
+                    animate_continue = FALSE;
+                }
+            }
+            break;
+
+        default:
+            break;
         }
 
-        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
+        ::SetWindowPos(window, HWND_TOP, rect.left, rect.top, 0, 0,
+                       SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
         return animate_continue;
     }
 
-  protected:
+protected:
     bool enable_window_snap_ = false;
     bool enable_window_snap_auto_hide_ = true;
     int dpi_ = 96;
