@@ -364,6 +364,7 @@ public:
             t_menu_cmd_always_on_top,
             t_menu_cmd_flowin_bring_to_top,
             t_menu_cmd_flowin_no_frame,
+            t_menu_cmd_flowin_no_frame_silent,
             t_menu_cmd_snap_to_edge,
             t_menu_cmd_snap_auto_hide,
             t_menu_cmd_flowin_reset_position,
