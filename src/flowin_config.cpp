@@ -41,6 +41,7 @@ void cfg_flowin_host::reset()
     cfg_no_frame.shadowed = true;
     cfg_no_frame.resizable = true;
     cfg_no_frame.draggable = true;
+    cfg_no_frame.rounded_corner = true;
 
     ZeroMemory(&window_rect, sizeof(window_rect));
     ZeroMemory(&reserved, sizeof(reserved));

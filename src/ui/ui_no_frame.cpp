@@ -20,14 +20,19 @@ BOOL CNoFrameSettingsDialog::OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/)
 
     uButton_SetCheck(m_hWnd, IDC_RESIZABLE, cfg_->cfg_no_frame.resizable);
     uButton_SetCheck(m_hWnd, IDC_MOVABLE, cfg_->cfg_no_frame.draggable);
+    
     if (cfg_->cfg_no_frame.legacy_no_frame)
     {
         uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, false);
         GetDlgItem(IDC_SHOW_SHADOW).EnableWindow(FALSE);
+
+        uButton_SetCheck(m_hWnd, IDC_ROUNDED_CORNER, false);
+        GetDlgItem(IDC_ROUNDED_CORNER).EnableWindow(FALSE);
     }
     else
     {
         uButton_SetCheck(m_hWnd, IDC_SHOW_SHADOW, cfg_->cfg_no_frame.shadowed);
+        uButton_SetCheck(m_hWnd, IDC_ROUNDED_CORNER, cfg_->cfg_no_frame.rounded_corner);
     }
 
     return TRUE;
@@ -40,6 +45,7 @@ void CNoFrameSettingsDialog::OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/)
         cfg_->cfg_no_frame.resizable = uButton_GetCheck(m_hWnd, IDC_RESIZABLE);
         cfg_->cfg_no_frame.draggable = uButton_GetCheck(m_hWnd, IDC_MOVABLE);
         cfg_->cfg_no_frame.shadowed = uButton_GetCheck(m_hWnd, IDC_SHOW_SHADOW);
+        cfg_->cfg_no_frame.rounded_corner = uButton_GetCheck(m_hWnd, IDC_ROUNDED_CORNER);
     }
 
     EndDialog(id);

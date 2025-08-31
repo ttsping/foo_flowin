@@ -47,9 +47,13 @@ public:
         bool resizable : 1;
         bool draggable : 1;
         bool shadowed : 1;
+        bool rounded_corner : 1;
         uint8_t legacy_no_frame; // internal use.
         uint8_t reserved[2];
     } cfg_no_frame;
+
+    static_assert(sizeof(cfg_no_frame) == sizeof(uint8_t) * 4, "unexpected no-frame configuration size");
+
     bool show_in_taskbar;
     bool bool_dummy[3];
     uint32_t reserved[18];

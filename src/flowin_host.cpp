@@ -104,7 +104,7 @@ public:
         MSG_WM_SYSCOMMAND(on_sys_command)
         MSG_WM_SHOWWINDOW(on_show_window)
         MSG_WM_SIZE(on_size)
-        MSG_WM_NCCALCSIZE(on_nc_calc_size)
+        //MSG_WM_NCCALCSIZE(on_nc_calc_size)
         MSG_WM_NCHITTEST(on_nc_hittest)
         MSG_WM_NCACTIVATE(on_nc_active)
         MSG_WM_SETCURSOR(on_set_cursor)
@@ -165,7 +165,25 @@ public:
         return element_inst_.is_valid() && ::IsWindow(element_inst_->get_wnd());
     }
 
-    bool pretranslate_message(MSG* p_msg)
+    inline POINT get_border_metrics()
+    {
+        using namespace utils;
+        const auto dpi = static_cast<uint32_t>(QueryScreenDPIEx(*this).cx);
+        const int32_t cx = get_system_metrics(SM_CXFRAME, dpi) + get_system_metrics(SM_CXPADDEDBORDER, dpi);
+        const int32_t cy = get_system_metrics(SM_CYFRAME, dpi) + get_system_metrics(SM_CXPADDEDBORDER, dpi);
+        return POINT{cx, cy};
+    }
+
+    inline CRect get_rect_for_non_sizing()
+    {
+        CRect rect;
+        GetWindowRect(&rect);
+        const auto border = get_border_metrics();
+        rect.InflateRect(-border.x, -border.y);
+        return rect;
+    }
+
+    bool pretranslate_message(MSG* p_msg) override
     {
         if (!host_config_)
             return false;
@@ -197,6 +215,20 @@ public:
 
         if (forward_message)
             SendMessage(p_msg->message, p_msg->wParam, p_msg->lParam);
+
+        switch (p_msg->message)
+        {
+        case WM_MOUSEMOVE:
+            on_mouse_move_hook(p_msg);
+            break;
+
+        case WM_LBUTTONDOWN:
+            on_lbutton_down_hook(p_msg);
+            break;
+
+        default:
+            break;
+        }
 
         return false;
     }
@@ -234,7 +266,7 @@ public:
             }
         }
 
-        bool ret = s_is_win11 != 1 || !flowin_utils::is_composition_enabled();
+        bool ret = s_is_win11 != 1 || !utils::is_composition_enabled();
         if (host_config_)
             host_config_->cfg_no_frame.legacy_no_frame = ret ? 1 : 0;
 
@@ -423,11 +455,17 @@ private:
 
     void show_no_frame_shadow(bool show)
     {
-        if (flowin_utils::is_composition_enabled())
+        if (utils::is_composition_enabled())
         {
             static const MARGINS extend_margins[2]{{0, 0, 0, 0}, {1, 1, 1, 1}};
             ::DwmExtendFrameIntoClientArea(get_wnd(), &extend_margins[show ? 1 : 0]);
         }
+    }
+
+    void enable_rounded_corner(bool enable)
+    {
+        const DWORD policy = enable ? DWMNCRP_ENABLED : DWMNCRP_DISABLED;
+        std::ignore = DwmSetWindowAttribute(get_wnd(), DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
     }
 
     void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false)
@@ -648,7 +686,7 @@ private:
 
     void adjust_maximized_client_rect(LPRECT rect)
     {
-        if (flowin_utils::is_maximized(get_wnd()))
+        if (utils::is_maximized(get_wnd()))
         {
             HMONITOR mon = MonitorFromWindow(get_wnd(), MONITOR_DEFAULTTONEAREST);
             WIN32_OP_D(mon != NULL);
@@ -672,8 +710,10 @@ private:
             }
             else
             {
-                ModifyStyle(0, rel_style);
+                //ModifyStyle(0, rel_style);
+                ModifyStyle(rel_style, 0);
                 show_no_frame_shadow(get_cfg_no_frame().shadowed);
+                enable_rounded_corner(get_cfg_no_frame().rounded_corner);
             }
             // HACK
             // TODO snap in no frame mode not fully supported
@@ -684,6 +724,7 @@ private:
             ModifyStyle(!host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0,
                         rel_style | (host_config_->show_in_taskbar ? (WS_MAXIMIZEBOX | WS_MINIMIZEBOX) : 0));
             show_no_frame_shadow(false);
+            enable_rounded_corner(true);
             kSnapHideEdgeWidth = 8;
         }
 
@@ -846,6 +887,95 @@ private:
         SetMsgHandled(FALSE);
     }
 
+    void on_mouse_move_hook(LPMSG msg)
+    {
+        if (!is_cfg_no_frame())
+            return;
+
+        GUITHREADINFO thread_info = {};
+        thread_info.cbSize = sizeof(thread_info);
+        if (GetGUIThreadInfo(GetCurrentThreadId(), &thread_info))
+        {
+            if (thread_info.flags & (GUI_INMENUMODE | GUI_INMOVESIZE | GUI_POPUPMENUMODE | GUI_SYSTEMMENUMODE))
+                return;
+
+            const DWORD msg_pos = GetMessagePos();
+            const POINT pt = {GET_X_LPARAM(msg_pos), GET_Y_LPARAM(msg_pos)};
+            const CRect rect_for_non_sizing = get_rect_for_non_sizing();
+            if (rect_for_non_sizing.PtInRect(pt))
+                return;
+
+            const int32_t hittest = (int32_t)SendMessage(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y));
+            if (hittest != HTCLIENT)
+            {
+                SendMessage(WM_SETCURSOR, (WPARAM)get_wnd(), MAKELPARAM(hittest, WM_MOUSEMOVE));
+                msg->message = WM_NULL;
+            }
+        }
+    }
+
+    void on_lbutton_down_hook(LPMSG msg)
+    {
+        if (!is_cfg_no_frame())
+            return;
+
+        auto HitTestToWMSZ = [](int32_t hittest) -> int32_t
+        {
+            switch (hittest)
+            {
+            case HTLEFT:
+                return WMSZ_LEFT;
+            case HTTOP:
+                return WMSZ_TOP;
+            case HTRIGHT:
+                return WMSZ_RIGHT;
+            case HTBOTTOM:
+                return WMSZ_BOTTOM;
+            case HTTOPLEFT:
+                return WMSZ_TOPLEFT;
+            case HTTOPRIGHT:
+                return WMSZ_TOPRIGHT;
+            case HTBOTTOMLEFT:
+                return WMSZ_BOTTOMLEFT;
+            case HTBOTTOMRIGHT:
+                return WMSZ_BOTTOMRIGHT;
+            default:
+                break;
+            }
+            return 0;
+        };
+
+        GUITHREADINFO threadInfo = {};
+        threadInfo.cbSize = sizeof(threadInfo);
+        if (GetGUIThreadInfo(GetCurrentThreadId(), &threadInfo))
+        {
+            if (threadInfo.flags & (GUI_INMENUMODE | GUI_POPUPMENUMODE | GUI_SYSTEMMENUMODE))
+                return;
+
+            const DWORD messagePos = GetMessagePos();
+            const POINT pt = {GET_X_LPARAM(messagePos), GET_Y_LPARAM(messagePos)};
+
+            {
+                // simulate resizing
+                const CRect rect_for_non_sizing = get_rect_for_non_sizing();
+                if (!rect_for_non_sizing.PtInRect(pt))
+                {
+                    if (threadInfo.flags & (GUI_INMOVESIZE))
+                        return;
+
+                    const int32_t hittest = (int32_t)SendMessage(WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y));
+                    if (hittest != HTCLIENT)
+                    {
+                        SendMessage(WM_SETCURSOR, (WPARAM)get_wnd(), MAKELPARAM(hittest, WM_MOUSEMOVE));
+                        SendMessage(WM_SYSCOMMAND, SC_SIZE | HitTestToWMSZ(hittest), MAKELPARAM(pt.x, pt.y));
+                        msg->message = WM_NULL;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
     void on_context_menu(CWindow wnd, CPoint point)
     {
         RECT rect_client;
@@ -894,11 +1024,6 @@ private:
         {
             CRect rc;
             GetClientRect(&rc);
-            if (is_cfg_no_frame() && get_cfg_no_frame().resizable)
-            {
-                InflateRect(&rc, -2, -2);
-            }
-
             ::SetWindowPos(element_inst_->get_wnd(), HWND_TOP, rc.left, rc.top, rc.Width(), rc.Height(),
                            SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOZORDER);
         }
@@ -932,56 +1057,43 @@ private:
         }
 
         UINT res = HTCLIENT;
-
         if (!get_cfg_no_frame().resizable)
             return res;
 
-        const int cx = kWindowFrameX;
-        const int cy = kWindowFrameY;
+        RECT rect{};
+        WIN32_OP_D(GetWindowRect(&rect));
+        const auto border = get_border_metrics();
 
-        RECT rect_window{};
-        WIN32_OP_D(GetWindowRect(&rect_window));
-
-        // left & right
-        if (point.x <= rect_window.left + cx)
-            res = HTLEFT;
-        else if (point.x >= (rect_window.right - cx))
-            res = HTRIGHT;
-
-        // top & bottom
-        if (point.y <= rect_window.top + cy)
+        enum EdgeMask
         {
-            switch (res)
-            {
-            case HTLEFT:
-                res = HTTOPLEFT;
-                break;
+            Left = 0b0001,
+            Right = 0b0010,
+            Top = 0b0100,
+            Bottom = 0b1000,
+        };
 
-            case HTRIGHT:
-                res = HTTOPRIGHT;
-                break;
-
-            default:
-                res = HTTOP;
-                break;
-            }
-        }
-        else if (point.y >= (rect_window.bottom - cy))
+        const auto result = Left * (point.x < (rect.left + border.x)) | Right * (point.x >= (rect.right - border.x)) |
+                            Top * (point.y < (rect.top + border.y)) | Bottom * (point.y >= (rect.bottom - border.y));
+        switch (result)
         {
-            switch (res)
-            {
-            case HTLEFT:
-                res = HTBOTTOMLEFT;
-                break;
-
-            case HTRIGHT:
-                res = HTBOTTOMRIGHT;
-                break;
-
-            default:
-                res = HTBOTTOM;
-                break;
-            }
+        case Left:
+            return HTLEFT;
+        case Right:
+            return HTRIGHT;
+        case Top:
+            return HTTOP;
+        case Bottom:
+            return HTBOTTOM;
+        case Top | Left:
+            return HTTOPLEFT;
+        case Top | Right:
+            return HTTOPRIGHT;
+        case Bottom | Left:
+            return HTBOTTOMLEFT;
+        case Bottom | Right:
+            return HTBOTTOMRIGHT;
+        default:
+            break;
         }
 
         return res;
@@ -989,7 +1101,7 @@ private:
 
     BOOL on_nc_active(BOOL active)
     {
-        if (is_cfg_no_frame() && !flowin_utils::is_composition_enabled())
+        if (is_cfg_no_frame() && !utils::is_composition_enabled())
             return TRUE;
 
         SetMsgHandled(FALSE);
@@ -998,7 +1110,7 @@ private:
 
     BOOL on_set_cursor(CWindow /*wnd*/, UINT hittest, UINT message)
     {
-        if (!is_cfg_no_frame() || !use_legacy_no_frame())
+        if (!is_cfg_no_frame() /* || !use_legacy_no_frame()*/)
         {
             SetMsgHandled(FALSE);
             return FALSE;
