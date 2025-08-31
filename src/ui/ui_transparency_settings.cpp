@@ -41,7 +41,7 @@ void CTransparencySetDialog::OnEnableHoverTransparency(UINT /*code*/, int /*id*/
 
 void CTransparencySetDialog::OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl)
 {
-    if (code == TB_THUMBTRACK)
+    if (code == TB_THUMBTRACK || code == TB_ENDTRACK)
     {
         int transparency = -1;
         cfg_->transparency = track_ctrl_.GetPos();
