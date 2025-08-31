@@ -87,13 +87,13 @@ public:
         case t_menu_cmd_snap_to_edge:
             text = "Snap to screen edge";
             menu_set_check(config_ && config_->enable_snap);
-            menu_set_disable(!is_alive || !config_ || !config_->show_caption);
+            menu_set_disable(!is_alive || !config_);
             break;
 
         case t_menu_cmd_snap_auto_hide:
             text = "Auto hide when snapped";
             menu_set_check(config_ && config_->enable_autohide_when_snapped);
-            menu_set_disable(!is_alive || !config_ || !config_->enable_snap || !config_->show_caption);
+            menu_set_disable(!is_alive || !config_ || !config_->enable_snap);
             break;
 
         case t_menu_cmd_flowin_reset_position:

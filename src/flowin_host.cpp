@@ -857,6 +857,7 @@ private:
         if (is_cfg_no_frame() && get_cfg_no_frame().draggable)
         {
             SetCapture();
+            SendMessage(WM_ENTERSIZEMOVE);
             is_perform_drag_ = true;
         }
     }
@@ -866,6 +867,7 @@ private:
         if (is_perform_drag_)
         {
             ReleaseCapture();
+            SendMessage(WM_EXITSIZEMOVE);
             is_perform_drag_ = false;
         }
     }
@@ -879,7 +881,9 @@ private:
             RECT rect;
             WIN32_OP_D(GetWindowRect(&rect));
             OffsetRect(&rect, pt.x - drag_point_.x, pt.y - drag_point_.y);
+            SendMessage(WM_MOVING, 0, (LPARAM)&rect);
             MoveWindow(&rect);
+            GetCursorPos(&pt);
             drag_point_ = pt;
             return;
         }
