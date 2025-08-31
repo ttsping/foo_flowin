@@ -84,6 +84,12 @@ public:
             menu_set_disable(!is_alive);
             break;
 
+        case t_menu_cmd_flowin_no_frame_silent:
+            text = "Toggle window frame (slient)";
+            flags = mainmenu_commands::flag_defaulthidden;
+            menu_set_disable(!is_alive);
+            break;
+
         case t_menu_cmd_snap_to_edge:
             text = "Snap to screen edge";
             menu_set_check(config_ && config_->enable_snap);
@@ -185,6 +191,7 @@ public:
 
         case t_menu_cmd_always_on_top:
         case t_menu_cmd_flowin_no_frame:
+        case t_menu_cmd_flowin_no_frame_silent:
         case t_menu_cmd_snap_to_edge:
         case t_menu_cmd_snap_auto_hide:
         case t_menu_cmd_edit_mode:
@@ -192,7 +199,10 @@ public:
         case t_menu_cmd_flowin_reset_position:
         case t_menu_cmd_flowin_bring_to_top:
             if (config_ != nullptr)
-                flowin_core::get()->post_message(config_->guid, UWM_FLOWIN_COMMAND, (WPARAM)cmd_);
+            {
+                LPARAM lp = (cmd_ == t_menu_cmd_flowin_no_frame_silent ? TRUE : 0);
+                flowin_core::get()->post_message(config_->guid, UWM_FLOWIN_COMMAND, (WPARAM)cmd_, lp);
+            }
             break;
 
         case t_menu_cmd_flowin_identify:
@@ -310,9 +320,9 @@ public:
     active_flowin_node_group()
     {
         t_uint32 menus_id[] = {
-            t_menu_cmd_always_on_top, t_menu_cmd_flowin_bring_to_top, t_menu_cmd_flowin_no_frame,
-            t_menu_cmd_snap_to_edge,  t_menu_cmd_snap_auto_hide,      t_menu_cmd_flowin_reset_position,
-            t_menu_cmd_edit_mode,     t_menu_cmd_destroy_element,
+            t_menu_cmd_always_on_top,          t_menu_cmd_flowin_bring_to_top, t_menu_cmd_flowin_no_frame,
+            t_menu_cmd_flowin_no_frame_silent, t_menu_cmd_snap_to_edge,        t_menu_cmd_snap_auto_hide,
+            t_menu_cmd_flowin_reset_position,  t_menu_cmd_edit_mode,           t_menu_cmd_destroy_element,
         };
         menu_nodes_.push_back(fb2k::service_new<flowin_config_menu_node_command>(t_menu_cmd_flowin_identify));
         menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());

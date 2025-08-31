@@ -104,7 +104,7 @@ public:
         MSG_WM_SYSCOMMAND(on_sys_command)
         MSG_WM_SHOWWINDOW(on_show_window)
         MSG_WM_SIZE(on_size)
-        //MSG_WM_NCCALCSIZE(on_nc_calc_size)
+        // MSG_WM_NCCALCSIZE(on_nc_calc_size)
         MSG_WM_NCHITTEST(on_nc_hittest)
         MSG_WM_NCACTIVATE(on_nc_active)
         MSG_WM_SETCURSOR(on_set_cursor)
@@ -547,6 +547,7 @@ private:
             break;
 
         case t_menu_cmd_flowin_no_frame:
+        case t_menu_cmd_flowin_no_frame_silent:
             if (!host_config_->show_caption)
             {
                 host_config_->show_caption = true;
@@ -710,7 +711,7 @@ private:
             }
             else
             {
-                //ModifyStyle(0, rel_style);
+                // ModifyStyle(0, rel_style);
                 ModifyStyle(rel_style, 0);
                 show_no_frame_shadow(get_cfg_no_frame().shadowed);
                 enable_rounded_corner(get_cfg_no_frame().rounded_corner);
@@ -729,7 +730,7 @@ private:
         }
 
         // notify changes
-        SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
     }
 
 private:
