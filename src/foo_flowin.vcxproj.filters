@@ -63,6 +63,9 @@
     <ClInclude Include="ui\ui_no_frame.h">
       <Filter>Source Files\ui</Filter>
     </ClInclude>
+    <ClInclude Include="flowin_menu_node.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -106,6 +109,9 @@
     </ClCompile>
     <ClCompile Include="ui\ui_no_frame.cpp">
       <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="flowin_menu_node.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

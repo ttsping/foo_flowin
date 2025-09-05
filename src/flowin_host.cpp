@@ -1,15 +1,16 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <shobjidl.h>
 #include <comdef.h>
 #include <dwmapi.h>
 #include <mutex>
+#include "helpers/ui_element_helpers.h"
+#include "helpers/atl-misc.h"
+#include "libPPUI/win32_utility.h"
 #include "snap_window.h"
 #include "flowin_vars.h"
 #include "flowin_config.h"
 #include "flowin_core.h"
-#include "helpers/ui_element_helpers.h"
-#include "helpers/atl-misc.h"
-#include "libPPUI/win32_utility.h"
+#include "flowin_menu_node.h"
 #include "flowin_utils.h"
 #include "ui/ui_custom_title.h"
 #include "ui/ui_transparency_settings.h"
@@ -517,17 +518,26 @@ private:
 
     void build_context_menu(HMENU menu, bool sys_menu = true)
     {
-        insert_menu(menu, t_menu_cmd_show_flowin_on_startup, L"Show on startup", true, host_config_->show_on_startup);
-        insert_menu(menu, t_menu_cmd_always_on_top, L"Always on top", true, host_config_->always_on_top);
-        insert_menu(menu, t_menu_cmd_flowin_no_frame, L"No window frame", true, !host_config_->show_caption);
-        insert_menu(menu, t_menu_cmd_show_in_taskbar, L"Add to the taskbar", true, host_config_->show_in_taskbar);
-        insert_menu(menu, t_menu_cmd_snap_to_edge, L"Snap to screen edge", true, host_config_->enable_snap);
-        insert_menu(menu, t_menu_cmd_snap_auto_hide, L"Auto hide when snapped", host_config_->enable_snap,
-                    host_config_->enable_autohide_when_snapped);
-        insert_menu(menu, t_menu_cmd_edit_mode, L"Edit mode", true, host_config_->edit_mode);
-        insert_menu(menu, t_menu_cmd_flowin_custom_title, L"Custom title");
-        insert_menu(menu, t_menu_cmd_flowin_transparency, L"Transparency");
-        insert_menu(menu, t_menu_cmd_destroy_element, L"Delete");
+        if (menu_nodes_.empty())
+        {
+            if (auto group_nodes = build_flowin_menu_nodes())
+            {
+                for (auto& node : group_nodes->nodes)
+                {
+                    if (node->show_flags & flowin_menu_show_on_system_menu)
+                        menu_nodes_.push_back(node);
+                }
+            }
+        }
+
+        for (auto& node : menu_nodes_)
+        {
+            pfc::stringcvt::string_wide_from_utf8 caption(node->text.c_str());
+            const uint32_t flags = node->get_flags(host_config_);
+            const bool enabled = !(flags & mainmenu_commands::flag_disabled);
+            const bool checked = flags & mainmenu_commands::flag_checked;
+            insert_menu(menu, node->id, caption, enabled, checked);
+        }
 
         if (sys_menu)
             insert_menu(menu, 0, nullptr);
@@ -1224,6 +1234,7 @@ private:
     UINT_PTR transparency_timer_ = 0;
     int32_t tranparency_intermediate_ = -1;
     DarkMode::CHooks dark_mode_hooks_;
+    std::vector<flowin_menu_node::sp_t> menu_nodes_;
 };
 
 class ui_element_flowin_host_impl : public ui_element_impl<flowin_host>

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <memory>
 #include <vector>
 
@@ -103,6 +103,11 @@ public:
     cfg_flowin_host::sp_t add_or_find_configuration(const GUID& host_guid);
     void remove_configuration(const GUID& host_guid);
 
+    size_t get_configuration_count() const
+    {
+        return host_config_list_.size();
+    }
+
     template <typename t_callback> void enum_configuration(t_callback p_callback)
     {
         for (size_t n = 0, m = host_config_list_.size(); n < m; ++n)
@@ -163,4 +168,10 @@ template <typename t_callback> inline void for_each(t_callback&& p_callback)
 {
     cfg_flowin::get()->enum_configuration(std::move(p_callback));
 }
+
+inline size_t get_count() 
+{
+    return cfg_flowin::get()->get_configuration_count();
+}
+
 } // namespace configuration

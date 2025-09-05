@@ -322,6 +322,7 @@
     <ClInclude Include="flowin_defines.h" />
     <ClInclude Include="flowin_interface.h" />
     <ClInclude Include="flowin_interface_impl.h" />
+    <ClInclude Include="flowin_menu_node.h" />
     <ClInclude Include="flowin_utils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
@@ -338,6 +339,7 @@
     <ClCompile Include="flowin_core.cpp" />
     <ClCompile Include="flowin_host.cpp" />
     <ClCompile Include="flowin_interface_impl.cpp" />
+    <ClCompile Include="flowin_menu_node.cpp" />
     <ClCompile Include="flowin_utils.cpp" />
     <ClCompile Include="initquit.cpp" />
     <ClCompile Include="mainmenu.cpp" />

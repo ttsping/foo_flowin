@@ -1,249 +1,37 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "flowin_vars.h"
 #include "flowin_core.h"
 #include "flowin_config.h"
+#include "flowin_menu_node.h"
 
 namespace
 {
-
-class flowin_config_menu_node_command : public mainmenu_node_command
+class flowin_mainmenu_node_command : public mainmenu_node_command
 {
 public:
-    flowin_config_menu_node_command(t_uint32 id, cfg_flowin_host::sp_t cfg = nullptr)
-        : cmd_(id), config_(cfg), is_active_group_nodes_(false)
+    explicit flowin_mainmenu_node_command(const flowin_menu_node::sp_t& node,
+                                          const cfg_flowin_host::sp_t& config = nullptr)
+        : node_(node), config_(config)
     {
-        if (cfg == nullptr && is_require_config())
-            is_active_group_nodes_ = true;
+        has_dynamic_config_ = (config_ == nullptr && is_config_reqired());
     }
 
     void get_display(pfc::string_base& text, t_uint32& flags) override
     {
-        validate_config();
-        const bool is_alive = config_ ? flowin_core::get()->is_flowin_alive(config_->guid) : false;
-        const auto menu_set_check = [&](bool check = false)
+        if (has_dynamic_config_)
+            load_config();
+
+        if (node_->id == t_menu_cmd_flowin_identify)
         {
-            if ((config_ == nullptr) && is_require_config())
-                flags = mainmenu_commands::flag_disabled;
-            else
-                flags |= (check ? mainmenu_commands::flag_checked : 0);
-        };
-
-        const auto menu_set_disable = [&](bool disable = false)
-        {
-            if ((config_ == nullptr) && is_require_config())
-                flags = mainmenu_commands::flag_disabled;
-            else
-                flags |= (disable ? mainmenu_commands::flag_disabled : 0);
-        };
-
-        uint32_t flowin_count = 0;
-        configuration::for_each([&flowin_count](const auto&) { ++flowin_count; });
-
-        flags = 0;
-        switch (cmd_)
-        {
-        case t_menu_cmd_new_flowin:
-            text = "New flowin";
-            break;
-
-        case t_menu_cmd_show_all:
-            text = "Show all";
-            menu_set_disable(flowin_count == 0);
-            break;
-
-        case t_menu_cmd_close_all:
-            text = "Close all";
-            menu_set_disable(flowin_count == 0);
-            break;
-
-        case t_menu_cmd_show_flowin:
-            text = "Show";
-            menu_set_check(is_alive);
-            break;
-
-        case t_menu_cmd_show_flowin_on_startup:
-            text = "Show on startup";
-            menu_set_check(config_ && config_->show_on_startup);
-            break;
-
-        case t_menu_cmd_always_on_top:
-            text = "Always on top";
-            menu_set_check(config_ && config_->always_on_top);
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_flowin_bring_to_top:
-            text = "Bring to top";
-            menu_set_check(false);
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_flowin_no_frame:
-            text = "No window frame";
-            menu_set_check(config_ && !config_->show_caption);
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_flowin_no_frame_silent:
-            text = "Toggle window frame (slient)";
-            flags = mainmenu_commands::flag_defaulthidden;
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_snap_to_edge:
-            text = "Snap to screen edge";
-            menu_set_check(config_ && config_->enable_snap);
-            menu_set_disable(!is_alive || !config_);
-            break;
-
-        case t_menu_cmd_snap_auto_hide:
-            text = "Auto hide when snapped";
-            menu_set_check(config_ && config_->enable_autohide_when_snapped);
-            menu_set_disable(!is_alive || !config_ || !config_->enable_snap);
-            break;
-
-        case t_menu_cmd_flowin_reset_position:
-            text = "Reset position";
-            menu_set_check(false);
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_edit_mode:
-            text = "Edit mode";
-            menu_set_check(config_ && config_->edit_mode);
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_destroy_element:
-            text = "Delete";
-            menu_set_disable(!is_alive);
-            break;
-
-        case t_menu_cmd_flowin_identify:
             text = config_ ? config_->window_title : "Unknown";
-            menu_set_disable(true);
-            break;
-
-        case t_menu_cmd_flowin_show_info:
-            text = "Info";
-            flags = mainmenu_commands::flag_defaulthidden;
-            break;
-
-        case t_menu_cmd_show_flowin_and_hide_main_window:
-            text = "Show flowin and hide main window";
-            flags = mainmenu_commands::flag_defaulthidden;
-            menu_set_disable(is_alive);
-            break;
-
-        case t_menu_cmd_close_flowin_and_activate_main_window:
-            text = "Close flowin and activate main window";
-            flags = mainmenu_commands::flag_defaulthidden;
-            menu_set_disable(!is_alive);
-            break;
-
-        default:
-            break;
+            flags = mainmenu_commands::flag_disabled;
+        }
+        else
+        {
+            text = node_->text.c_str();
+            flags = node_->get_flags(config_);
         }
     }
-
-    void execute(service_ptr_t<service_base> callback) override
-    {
-        validate_config();
-
-        switch (cmd_)
-        {
-        case t_menu_cmd_new_flowin:
-            flowin_core::get()->create_flowin();
-            break;
-
-        case t_menu_cmd_show_all:
-            configuration::for_each(
-                [](const cfg_flowin_host::sp_t& config)
-                {
-                    auto core = flowin_core::get();
-                    if (core->is_flowin_alive(config->guid))
-                        core->post_message(config->guid, UWM_FLOWIN_ACTIVE);
-                    else
-                        core->create_flowin(config->guid);
-                });
-            break;
-
-        case t_menu_cmd_close_all:
-            configuration::for_each([](const cfg_flowin_host::sp_t& config)
-                                    { flowin_core::get()->post_message(config->guid, WM_CLOSE); });
-            break;
-
-        case t_menu_cmd_show_flowin:
-            if (config_ != nullptr)
-            {
-                auto core = flowin_core::get();
-                if (core->is_flowin_alive(config_->guid))
-                    core->post_message(config_->guid, WM_CLOSE);
-                else
-                    core->create_flowin(config_->guid);
-            }
-            break;
-
-        case t_menu_cmd_show_flowin_on_startup:
-            if (config_ != nullptr)
-                config_->show_on_startup = !config_->show_on_startup;
-            break;
-
-        case t_menu_cmd_always_on_top:
-        case t_menu_cmd_flowin_no_frame:
-        case t_menu_cmd_flowin_no_frame_silent:
-        case t_menu_cmd_snap_to_edge:
-        case t_menu_cmd_snap_auto_hide:
-        case t_menu_cmd_edit_mode:
-        case t_menu_cmd_destroy_element:
-        case t_menu_cmd_flowin_reset_position:
-        case t_menu_cmd_flowin_bring_to_top:
-            if (config_ != nullptr)
-            {
-                LPARAM lp = (cmd_ == t_menu_cmd_flowin_no_frame_silent ? TRUE : 0);
-                flowin_core::get()->post_message(config_->guid, UWM_FLOWIN_COMMAND, (WPARAM)cmd_, lp);
-            }
-            break;
-
-        case t_menu_cmd_flowin_identify:
-            break;
-
-        case t_menu_cmd_flowin_show_info:
-            if (config_)
-            {
-                pfc::string8 msg;
-                msg << "guid: " << pfc::print_guid(config_->guid);
-                popup_message_v2::g_show(core_api::get_main_window(), msg);
-            }
-            break;
-
-        case t_menu_cmd_show_flowin_and_hide_main_window:
-            if (config_ != nullptr)
-            {
-                auto core = flowin_core::get();
-                if (!core->is_flowin_alive(config_->guid))
-                    core->create_flowin(config_->guid);
-
-                ui_control::get()->hide();
-            }
-            break;
-
-        case t_menu_cmd_close_flowin_and_activate_main_window:
-            if (config_ != nullptr)
-            {
-                auto core = flowin_core::get();
-                if (core->is_flowin_alive(config_->guid))
-                {
-                    core->post_message(config_->guid, WM_CLOSE);
-                    ui_control::get()->activate();
-                }
-            }
-            break;
-
-        default:
-            break;
-        }
-    };
 
     GUID get_guid() override
     {
@@ -251,26 +39,26 @@ public:
         t_uint32 flags;
         pfc::string8 name;
         get_display(name, flags);
-        if (is_active_group_nodes_ || !is_require_config())
+        if (has_dynamic_config_ || !is_config_reqired())
         {
             name += pfc::print_guid(guid_dummy);
         }
         else
         {
-            validate_config();
+            load_config();
             name += pfc::print_guid(config_ ? config_->guid : guid_dummy);
         }
 
         return hasher_md5::get()->process_single_guid(name.get_ptr(), name.get_length());
     };
 
-    bool get_description(pfc::string_base& out) override
+    void execute(service_ptr_t<service_base> callback) override
     {
-        return false;
+        node_->action(config_);
     }
 
 private:
-    void validate_config()
+    void load_config()
     {
         if (config_ != nullptr)
             return;
@@ -285,16 +73,16 @@ private:
                 if (config->guid == active_guid)
                 {
                     config_ = config;
-                    return true;
+                    return true; // stop
                 }
 
                 return false;
             });
     }
 
-    bool is_require_config()
+    bool is_config_reqired() const
     {
-        switch (cmd_)
+        switch (node_->id)
         {
         case t_menu_cmd_new_flowin:
         case t_menu_cmd_show_all:
@@ -309,127 +97,67 @@ private:
     }
 
 private:
-    const t_uint32 cmd_;
     cfg_flowin_host::sp_t config_;
-    bool is_active_group_nodes_;
+    flowin_menu_node::sp_t node_;
+    bool has_dynamic_config_ = false;
 };
 
-class active_flowin_node_group : public mainmenu_node_group
+class flowin_mainmenu_node_group : public mainmenu_node_group
 {
 public:
-    active_flowin_node_group()
+    flowin_mainmenu_node_group()
     {
-        t_uint32 menus_id[] = {
-            t_menu_cmd_always_on_top,          t_menu_cmd_flowin_bring_to_top, t_menu_cmd_flowin_no_frame,
-            t_menu_cmd_flowin_no_frame_silent, t_menu_cmd_snap_to_edge,        t_menu_cmd_snap_auto_hide,
-            t_menu_cmd_flowin_reset_position,  t_menu_cmd_edit_mode,           t_menu_cmd_destroy_element,
-        };
-        menu_nodes_.push_back(fb2k::service_new<flowin_config_menu_node_command>(t_menu_cmd_flowin_identify));
-        menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
-        for (t_size n = 0, m = pfc::array_size_t(menus_id); n < m; ++n)
+        menu_groups_ = build_flowin_menu_groups();
+        for (auto& group : menu_groups_)
         {
-            auto node = fb2k::service_new<flowin_config_menu_node_command>(menus_id[n]);
-            menu_nodes_.push_back(std::move(node));
-        }
-    }
-
-    void get_display(pfc::string_base& text, t_uint32& flags) override
-    {
-        flags = 0;
-        text = "Active";
-    }
-
-    t_size get_children_count() override
-    {
-        return menu_nodes_.size();
-    }
-
-    mainmenu_node::ptr get_child(t_size index) override
-    {
-        return menu_nodes_[index];
-    }
-
-private:
-    std::vector<mainmenu_node::ptr> menu_nodes_;
-};
-
-class live_flowin_node_group : public mainmenu_node_group
-{
-public:
-    live_flowin_node_group(cfg_flowin_host::sp_t cfg) : config_(cfg)
-    {
-        t_uint32 menus_id[] = {
-            t_menu_cmd_show_flowin,
-            t_menu_cmd_show_flowin_on_startup,
-            t_menu_cmd_always_on_top,
-            t_menu_cmd_flowin_bring_to_top,
-            t_menu_cmd_flowin_no_frame,
-            t_menu_cmd_flowin_no_frame_silent,
-            t_menu_cmd_snap_to_edge,
-            t_menu_cmd_snap_auto_hide,
-            t_menu_cmd_flowin_reset_position,
-            t_menu_cmd_edit_mode,
-            t_menu_cmd_flowin_show_info,
-            t_menu_cmd_destroy_element,
-            t_menu_cmd_show_flowin_and_hide_main_window,
-            t_menu_cmd_close_flowin_and_activate_main_window,
-        };
-        for (t_size n = 0, m = pfc::array_size_t(menus_id); n < m; ++n)
-        {
-            auto node = fb2k::service_new<flowin_config_menu_node_command>(menus_id[n], cfg);
-            menu_nodes_.push_back(std::move(node));
-        }
-    }
-
-    void get_display(pfc::string_base& text, t_uint32& flags) override
-    {
-        flags = 0;
-        text = config_->window_title;
-    }
-
-    t_size get_children_count() override
-    {
-        return menu_nodes_.size();
-    }
-
-    mainmenu_node::ptr get_child(t_size index) override
-    {
-        return menu_nodes_[index];
-    }
-
-private:
-    cfg_flowin_host::sp_t config_;
-    std::vector<mainmenu_node::ptr> menu_nodes_;
-};
-
-static t_uint32 fixed_menus_id[] = {t_menu_cmd_new_flowin, t_menu_cmd_show_all, t_menu_cmd_close_all};
-
-class flowin_menu_group : public mainmenu_node_group
-{
-public:
-    flowin_menu_group()
-    {
-        // fixed menus
-        for (t_size n = 0, m = pfc::array_size_t(fixed_menus_id); n < m; ++n)
-        {
-            auto node = fb2k::service_new<flowin_config_menu_node_command>(fixed_menus_id[n]);
-            menu_nodes_.push_back(std::move(node));
-        }
-        // separator
-        menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
-        // active flowin
-        menu_nodes_.push_back(fb2k::service_new<active_flowin_node_group>());
-        cfg_flowin::get()->enum_configuration(
-            [&](cfg_flowin_host::sp_t& config)
+            if (group->group == flowin_menu_group_root)
             {
-                auto node = fb2k::service_new<live_flowin_node_group>(config);
-                menu_nodes_.push_back(std::move(node));
-            });
+                for (auto& node : group->nodes)
+                {
+                    menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));
+                }
+            }
+            else
+            {
+                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(group));
+            }
+        }
+    }
+
+    explicit flowin_mainmenu_node_group(flowin_menu_group::sp_t& group) : menu_groups_{group}
+    {
+        for (auto& node : group->nodes)
+        {
+            if (node->id == 0)
+                menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
+            else
+                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));
+        }
     }
 
     void get_display(pfc::string_base& text, t_uint32& flags) override
     {
         flags = 0;
+
+        if (menu_groups_.size() == 1)
+        {
+            auto& group = menu_groups_.front();
+            switch (group->group)
+            {
+            case flowin_menu_group_active:
+                text = "Active";
+                return;
+
+            case flowin_menu_group_live:
+                text = group->config ? group->config->window_title : "Unknown";
+                return;
+
+            default:
+                break;
+            }
+        }
+
+        // default
         text = "Flowin";
     }
 
@@ -445,6 +173,7 @@ public:
 
 private:
     std::vector<mainmenu_node::ptr> menu_nodes_;
+    flowin_menu_group_list menu_groups_;
 };
 
 class flowin_mainmenu : public mainmenu_commands_v2
@@ -467,8 +196,7 @@ public:
 
     bool get_description(t_uint32 p_index, pfc::string_base& p_out) override
     {
-        p_out = "Flowin menus.";
-        return true;
+        return false;
     }
 
     GUID get_parent() override
@@ -487,7 +215,7 @@ public:
 
     mainmenu_node::ptr dynamic_instantiate(t_uint32 index) override
     {
-        return fb2k::service_new<flowin_menu_group>();
+        return fb2k::service_new<flowin_mainmenu_node_group>();
     }
 
     bool dynamic_execute(t_uint32 index, const GUID& subID, service_ptr_t<service_base> callback) override
