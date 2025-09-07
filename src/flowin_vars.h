@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace flowin
 {
@@ -62,6 +62,8 @@ enum t_flowin_menu_command_id
     t_menu_cmd_always_on_top,
     t_menu_cmd_snap_to_edge,
     t_menu_cmd_snap_auto_hide,
+    t_menu_cmd_snap_hide,
+    t_menu_cmd_snap_show,
     t_menu_cmd_edit_mode,
     t_menu_cmd_destroy_element,
     t_menu_cmd_show_flowin,

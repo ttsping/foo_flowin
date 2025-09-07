@@ -128,7 +128,9 @@ public:
     {
         for (auto& node : group->nodes)
         {
-            if (node->id == 0)
+            if (node->child_group != nullptr)
+                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(node->child_group));
+            else if (node->id == 0)
                 menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
             else
                 menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));
@@ -138,25 +140,31 @@ public:
     void get_display(pfc::string_base& text, t_uint32& flags) override
     {
         flags = 0;
-
         if (menu_groups_.size() == 1)
         {
             auto& group = menu_groups_.front();
-            switch (group->group)
+            if (group->text.empty())
             {
-            case flowin_menu_group_active:
-                text = "Active";
-                return;
+                switch (group->group)
+                {
+                case flowin_menu_group_active:
+                    text = "Active";
+                    return;
 
-            case flowin_menu_group_live:
-                text = group->config ? group->config->window_title : "Unknown";
-                return;
+                case flowin_menu_group_live:
+                    text = group->config ? group->config->window_title : "Unknown";
+                    return;
 
-            default:
-                break;
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                text = group->text.c_str();
+                return;
             }
         }
-
         // default
         text = "Flowin";
     }

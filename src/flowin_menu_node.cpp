@@ -11,6 +11,17 @@ inline bool is_flowin_alive(const cfg_t& config)
     return config && flowin_core::get()->is_flowin_alive(config->guid);
 }
 
+inline void notify_flowin(const cfg_t& config, uint32_t msg, WPARAM wp = 0, LPARAM lp = 0)
+{
+    if (config != nullptr)
+        flowin_core::get()->post_message(config->guid, msg, wp, lp);
+}
+
+inline void notify_flowin_command(const cfg_t& config, uint32_t cmd, LPARAM lp = 0)
+{
+    notify_flowin(config, UWM_FLOWIN_COMMAND, (WPARAM)cmd, lp);
+}
+
 #define flags_disable(cond)                                                                                            \
     {                                                                                                                  \
         if (cond)                                                                                                      \
@@ -90,7 +101,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 if (config != nullptr)
                 {
                     if (is_flowin_alive(config))
-                        flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
+                        notify_flowin_command(config, id);
                     else
                         config->always_on_top = !config->always_on_top;
                 }
@@ -107,11 +118,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
 
         if (auto node = group->new_node(t_menu_cmd_flowin_bring_to_top, "Bring to top", flowin_menu_show_on_main_menu))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -129,7 +136,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 if (config != nullptr)
                 {
                     if (is_flowin_alive(config))
-                        flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
+                        notify_flowin_command(config, id);
                     else
                         config->show_caption = !config->show_caption;
                 }
@@ -147,11 +154,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
         if (auto node = group->new_node(t_menu_cmd_flowin_no_frame_silent, "No window frame (slient)",
                                         flowin_menu_show_on_main_menu))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id, (LPARAM)TRUE);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -165,11 +168,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
 
         if (auto node = group->new_node(t_menu_cmd_snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -177,17 +176,14 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 flags_require_config();
                 flags_check(config && config->enable_snap);
                 flags_disable(!is_flowin_alive(config));
+                flags_default_hidden(); // Compatible with legacy menu shortcuts
                 return flags;
             };
         }
 
         if (auto node = group->new_node(t_menu_cmd_snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -195,18 +191,80 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 flags_require_config();
                 flags_check(config && config->enable_autohide_when_snapped);
                 flags_disable(!config || !config->enable_snap || !is_flowin_alive(config));
+                flags_default_hidden(); // Compatible with legacy menu shortcuts
                 return flags;
             };
+        }
+
+        // new snap group
+        if (auto snap_group_node = group->new_node(0, "", flowin_menu_show_on_all))
+        {
+            auto snap_group = flowin_menu_group::new_group(flowin_menu_group_submenu, "Snap");
+            snap_group_node->child_group = snap_group;
+
+            if (auto node =
+                    snap_group->new_node(t_menu_cmd_snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
+            {
+                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+                node->get_flags = [](const cfg_t& config)
+                {
+                    uint32_t flags = 0;
+                    flags_require_config();
+                    flags_check(config && config->enable_snap);
+                    flags_disable(!is_flowin_alive(config));
+                    return flags;
+                };
+            }
+
+            if (auto node =
+                    snap_group->new_node(t_menu_cmd_snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
+            {
+                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+                node->get_flags = [](const cfg_t& config)
+                {
+                    uint32_t flags = 0;
+                    flags_require_config();
+                    flags_check(config && config->enable_autohide_when_snapped);
+                    flags_disable(!config || !config->enable_snap || !is_flowin_alive(config));
+                    return flags;
+                };
+            }
+
+            if (auto node = snap_group->new_node(t_menu_cmd_snap_hide, "Hide", flowin_menu_show_on_all))
+            {
+                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+                node->get_flags = [](const cfg_t& config)
+                {
+                    uint32_t flags = 0;
+                    flags_require_config();
+                    flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
+                    //flags_default_hidden();
+                    return flags;
+                };
+            }
+
+            if (auto node = snap_group->new_node(t_menu_cmd_snap_show, "Show", flowin_menu_show_on_all))
+            {
+                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+                node->get_flags = [](const cfg_t& config)
+                {
+                    uint32_t flags = 0;
+                    flags_require_config();
+                    flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
+                    //flags_default_hidden();
+                    return flags;
+                };
+            }
         }
 
         if (auto node =
                 group->new_node(t_menu_cmd_flowin_reset_position, "Reset position", flowin_menu_show_on_main_menu))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -219,11 +277,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
 
         if (auto node = group->new_node(t_menu_cmd_edit_mode, "Edit mode", flowin_menu_show_on_all))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -238,21 +292,13 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
         if (auto node =
                 group->new_node(t_menu_cmd_flowin_custom_title, "Custom title", flowin_menu_show_on_system_menu))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
         }
 
         if (auto node =
                 group->new_node(t_menu_cmd_flowin_transparency, "Transparency", flowin_menu_show_on_system_menu))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
         }
 
         if (auto node = group->new_node(t_menu_cmd_flowin_show_info, "Info", flowin_menu_show_on_flowin))
@@ -278,11 +324,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
 
         if (auto node = group->new_node(t_menu_cmd_destroy_element, "Delete", flowin_menu_show_on_all))
         {
-            node->action = [id = node->id](cfg_t& config)
-            {
-                if (config != nullptr)
-                    flowin_core::get()->post_message(config->guid, UWM_FLOWIN_COMMAND, (WPARAM)id);
-            };
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -385,10 +427,7 @@ flowin_menu_group_list build_flowin_menu_groups()
         if (auto node = root->new_node(t_menu_cmd_close_all, "Close all"))
         {
             node->action = [](cfg_t&)
-            {
-                configuration::for_each([](const cfg_flowin_host::sp_t& config)
-                                        { flowin_core::get()->post_message(config->guid, WM_CLOSE); });
-            };
+            { configuration::for_each([](const cfg_flowin_host::sp_t& config) { notify_flowin(config, WM_CLOSE); }); };
 
             node->get_flags = [](const cfg_t&)
             {
@@ -408,15 +447,9 @@ flowin_menu_group_list build_flowin_menu_groups()
             if (auto active = flowin_menu_group::new_group(flowin_menu_group_active))
             {
                 // identify
-                if (auto node = active->new_node(t_menu_cmd_flowin_identify, "", flowin_menu_show_on_active))
-                {
-                    node->action = [](cfg_t&) {};
-                }
+                active->new_node(t_menu_cmd_flowin_identify, "", flowin_menu_show_on_active);
                 // separator
-                if (auto node = active->new_node(0, "", flowin_menu_show_on_active))
-                {
-                    node->action = [](cfg_t&) {};
-                }
+                active->new_node(0, "", flowin_menu_show_on_active);
                 // shared nodes
                 for (auto& node : shared_nodes)
                 {

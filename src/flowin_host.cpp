@@ -589,15 +589,15 @@ private:
 
         case t_menu_cmd_snap_to_edge:
             host_config_->enable_snap = !host_config_->enable_snap;
-            enable_window_snap_ = host_config_->enable_snap;
-            if (!enable_window_snap_)
+            enable_snap_ = host_config_->enable_snap;
+            if (!enable_snap_)
                 RestoreFromSnapHidden();
             break;
 
         case t_menu_cmd_snap_auto_hide:
             host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
-            enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
-            if (!enable_window_snap_auto_hide_)
+            snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
+            if (!snap_auto_hide_)
                 RestoreFromSnapHidden();
             break;
 
@@ -653,6 +653,18 @@ private:
             set_always_on_top(host_config_->always_on_top);
             break;
         }
+
+        case t_menu_cmd_snap_hide:
+            if (host_config_->enable_autohide_when_snapped)
+                break;
+            SimulateSnapToHide();
+            break;
+
+        case t_menu_cmd_snap_show:
+            if (host_config_->enable_autohide_when_snapped)
+                break;
+            SimulateSnapToShow();
+            break;
 
         default:
             break;
@@ -777,8 +789,8 @@ private:
         configure_window_style();
 
         // snap config
-        enable_window_snap_ = host_config_->enable_snap;
-        enable_window_snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
+        enable_snap_ = host_config_->enable_snap;
+        snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
 
         if (!host_config_->show_in_taskbar)
             show_or_hide_on_taskbar(false);

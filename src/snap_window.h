@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cmath>
 
 #ifndef __ATLBASE_H__
@@ -19,6 +19,13 @@ private:
     {
         SNAP_TIMER_ID = 0x1102,
         MOUSE_CHECK_TIMER_ID,
+    };
+
+    enum class SnapSimulateState
+    {
+        SNAP_SIM_NONE = -1,
+        SNAP_SIM_HIDE = 0,
+        SNAP_SIM_SHOW = 1,
     };
 
 protected:
@@ -85,7 +92,7 @@ public:
 protected:
     LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/)
     {
-        if (!enable_window_snap_)
+        if (!enable_snap_)
             return FALSE;
         LPRECT prc = (LPRECT)lp;
         RECT rect_work = {0};
@@ -124,7 +131,7 @@ protected:
 
     LRESULT OnEnterSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        if (!enable_window_snap_)
+        if (!enable_snap_)
             return 1;
         snap_state_ = SNAP_NONE;
         RECT rect;
@@ -145,7 +152,8 @@ protected:
 
     LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        if (enable_window_snap_auto_hide_ && !mouse_check_timer_)
+        const bool is_snap = (snap_timer_ != NULL) || (snap_state_ != SNAP_NONE);
+        if ((snap_auto_hide_ || is_snap) && !mouse_check_timer_)
         {
             ::PostMessage(GetHWnd(), UWM_MOUSEENTER, 0, 0);
             StartMouseCheckTimer();
@@ -156,19 +164,17 @@ protected:
     LRESULT OnMouseEnter(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
         mouse_in_window_ = TRUE;
-        if (enable_window_snap_auto_hide_)
+        const auto state = CheckSnapState();
+        if (snap_auto_hide_ || (state == SNAP_NONE && state != snap_state_))
         {
             if (snap_state_ == SNAP_INVALID)
             {
-                snap_state_ = CheckSnapState();
+                snap_state_ = state;
             }
             else if (snap_state_ != SNAP_NONE)
             {
-                SNAP_STATE state = CheckSnapState();
                 if (state != snap_state_)
-                {
                     StartSnapAnimateTimer();
-                }
             }
         }
         return 0;
@@ -177,7 +183,7 @@ protected:
     LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
         mouse_in_window_ = FALSE;
-        if (snap_state_ != SNAP_NONE)
+        if ((snap_state_ != SNAP_NONE) && snap_auto_hide_)
         {
             StartSnapAnimateTimer();
         }
@@ -190,7 +196,7 @@ protected:
         switch (id)
         {
         case SNAP_TIMER_ID:
-            if (!AnimateSnappedWindow(mouse_in_window_))
+            if (!AnimateSnappedWindow(mouse_in_window_ || (snap_sim_state_ == SnapSimulateState::SNAP_SIM_SHOW)))
             {
                 KillSnapAnimateTimer();
             }
@@ -288,6 +294,25 @@ protected:
         }
     }
 
+    VOID SimulateSnapToHide()
+    {
+        if (auto state = CheckSnapState(); state != SNAP_NONE)
+        {
+            snap_state_ = state;
+            snap_sim_state_ = SnapSimulateState::SNAP_SIM_HIDE;
+            StartSnapAnimateTimer();
+        }
+    }
+
+    VOID SimulateSnapToShow()
+    {
+        if (auto state = CheckSnapState(); (state == SNAP_NONE) && (state != snap_state_))
+        {
+            snap_sim_state_ = SnapSimulateState::SNAP_SIM_SHOW;
+            StartSnapAnimateTimer();
+        }
+    }
+
 private:
     inline VOID StartSnapAnimateTimer()
     {
@@ -304,6 +329,8 @@ private:
             ::KillTimer(GetHWnd(), snap_timer_);
             snap_timer_ = NULL;
         }
+
+        snap_sim_state_ = SnapSimulateState::SNAP_SIM_NONE;
     }
 
     inline VOID StartMouseCheckTimer()
@@ -473,8 +500,8 @@ private:
     }
 
 protected:
-    bool enable_window_snap_ = false;
-    bool enable_window_snap_auto_hide_ = true;
+    bool enable_snap_ = false;
+    bool snap_auto_hide_ = true;
     int dpi_ = 96;
     int snap_dx_ = 0, snap_dy_ = 0;
     int snap_detect_val_ = 0;
@@ -485,4 +512,5 @@ protected:
     BOOL mouse_in_window_ = FALSE;
     const int kSnapMoveDelta = 45;
     int snap_move_delta_ = kSnapMoveDelta;
+    SnapSimulateState snap_sim_state_ = SnapSimulateState::SNAP_SIM_HIDE;
 };
