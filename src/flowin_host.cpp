@@ -120,6 +120,7 @@ public:
         MESSAGE_HANDLER_EX(UWM_FLOWIN_UPDATE_TRANSPARENCY, on_update_transparency)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_REPAINT, on_repaint)
         MESSAGE_HANDLER_EX(UWM_FLOWIN_COLOR_CHANGED, on_ui_color_changed)
+        MESSAGE_HANDLER_EX(UWM_FLOWIN_CONTEXT_MENU, on_flowin_context_menu)
         CHAIN_MSG_MAP(ui_element_instance_host_base)
         CHAIN_MSG_MAP(CSnapWindow<flowin_host>)
     END_MSG_MAP()
@@ -210,6 +211,27 @@ public:
         case WM_MBUTTONUP:
             if (is_cfg_no_frame())
                 forward_message = true;
+            break;
+
+        case WM_RBUTTONDOWN:
+            interrupt_context_menu_ = false;
+
+            if (!is_cfg_no_frame())
+                break;
+
+            if (auto modifiers = (uint32_t)p_msg->wParam; ((modifiers & (MK_CONTROL | MK_SHIFT)) != 0))
+            {
+                interrupt_context_menu_ = true;
+                return true;
+            }
+            break;
+
+        case WM_RBUTTONUP:
+            if (interrupt_context_menu_)
+            {
+                PostMessage(UWM_FLOWIN_CONTEXT_MENU);
+                return true;
+            }
             break;
 
         default:
@@ -573,7 +595,7 @@ private:
             else
             {
                 bool apply_command = true;
-                if (!param)
+                if ((cmd != menu_commands::no_frame_silent) && (param == 0))
                 {
                     CNoFrameSettingsDialog dlg(host_config_);
                     if (dlg.DoModal(*this) != IDOK)
@@ -1241,6 +1263,19 @@ private:
         return 0;
     }
 
+    LRESULT on_flowin_context_menu(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/)
+    {
+        if (HMENU menu = CreatePopupMenu())
+        {
+            POINT pt = {};
+            GetCursorPos(&pt);
+            build_context_menu(menu, false);
+            const int32_t cmd = TrackPopupMenu(menu, TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, nullptr);
+            execute_context_menu(static_cast<flowin::menu_commands>(cmd));
+        }
+        return 0;
+    }
+
 private:
     // fix me. not standard impl
     ui_element_config::ptr dummy_config_;
@@ -1254,6 +1289,7 @@ private:
     int32_t tranparency_intermediate_ = -1;
     DarkMode::CHooks dark_mode_hooks_;
     std::vector<flowin_menu_node::sp_t> menu_nodes_;
+    bool interrupt_context_menu_ = false;
 };
 
 class ui_element_flowin_host_impl : public ui_element_impl<flowin_host>
