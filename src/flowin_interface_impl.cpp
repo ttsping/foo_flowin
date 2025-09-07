@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "flowin_interface_impl.h"
 #include "flowin_core.h"
 #include "flowin_vars.h"
@@ -220,7 +220,7 @@ STDMETHODIMP FlowinHostImpl::put_AlwaysOnTop(VARIANT_BOOL p)
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
     {
-        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)t_menu_cmd_always_on_top);
+        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)flowin::menu_commands::always_on_top);
     }
     else
     {
@@ -238,8 +238,8 @@ STDMETHODIMP FlowinHostImpl::put_NoFrame(VARIANT_BOOL p)
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
     {
-        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)t_menu_cmd_flowin_no_frame,
-                                         (LPARAM)TRUE);
+        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND,
+                                         (WPARAM)flowin::menu_commands::no_frame_silent);
     }
     else
     {
@@ -257,7 +257,7 @@ STDMETHODIMP FlowinHostImpl::put_SnapToEdge(VARIANT_BOOL p)
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
     {
-        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)t_menu_cmd_snap_to_edge);
+        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)flowin::menu_commands::snap_to_edge);
     }
     else
     {
@@ -275,7 +275,7 @@ STDMETHODIMP FlowinHostImpl::put_AutoHideWhenSnap(VARIANT_BOOL p)
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
     {
-        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)t_menu_cmd_snap_auto_hide);
+        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)flowin::menu_commands::snap_auto_hide);
     }
     else
     {

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <vector>
+#include "flowin_vars.h"
 
 class cfg_flowin_host;
 
@@ -37,14 +38,14 @@ struct flowin_menu_node
 {
     using sp_t = std::shared_ptr<flowin_menu_node>;
 
-    uint32_t id = 0;
+    flowin::menu_commands id = flowin::menu_commands::invalid;
     uint32_t show_flags = 0;
     std::string text;
     std::function<void(std::shared_ptr<cfg_flowin_host>&)> action = flowin_menu_node_default_action;
     std::function<uint32_t(const std::shared_ptr<cfg_flowin_host>&)> get_flags = flowin_menu_node_default_get_flags;
     std::shared_ptr<flowin_menu_group> child_group;
 
-    explicit flowin_menu_node(uint32_t node_id, std::string_view caption, uint32_t flags)
+    explicit flowin_menu_node(flowin::menu_commands node_id, std::string_view caption, uint32_t flags)
         : id(node_id), text(caption), show_flags(flags)
     {
     }
@@ -72,7 +73,7 @@ struct flowin_menu_group
         return std::make_shared<flowin_menu_group>(menu_group, caption);
     }
 
-    inline flowin_menu_node::sp_t new_node(uint32_t id, std::string_view text,
+    inline flowin_menu_node::sp_t new_node(flowin::menu_commands id, std::string_view text,
                                            uint32_t flags = flowin_menu_show_default)
     {
         nodes.push_back(std::make_shared<flowin_menu_node>(id, text, flags));

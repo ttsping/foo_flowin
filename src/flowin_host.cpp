@@ -19,6 +19,8 @@
 
 #pragma comment(lib, "dwmapi.lib")
 
+using namespace flowin;
+
 // clang-format off
 typedef CWinTraits<WS_CAPTION | WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_SYSMENU | WS_THICKFRAME, 0> CFlowinTraits;
 // clang-format on
@@ -403,6 +405,11 @@ public:
     }
 
 private:
+    void notify_command(menu_commands command)
+    {
+        PostMessage(UWM_FLOWIN_COMMAND, static_cast<uint32_t>(command));
+    }
+
     bool is_transparency_enabled()
     {
         return (host_config_->transparency > 0) ||
@@ -451,7 +458,7 @@ private:
 
     void bring_window_to_top()
     {
-        PostMessage(UWM_FLOWIN_COMMAND, t_menu_cmd_flowin_bring_to_top);
+        notify_command(menu_commands::bring_to_top);
     }
 
     void show_no_frame_shadow(bool show)
@@ -469,16 +476,16 @@ private:
         std::ignore = DwmSetWindowAttribute(get_wnd(), DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
     }
 
-    void insert_menu(HMENU menu, UINT id, LPCWSTR caption, bool enabled = true, bool checked = false)
+    void insert_menu(HMENU menu, menu_commands id, LPCWSTR caption, bool enabled = true, bool checked = false)
     {
         MENUITEMINFOW mii = {0};
         mii.cbSize = sizeof(mii);
         mii.fMask = MIIM_DATA;
         mii.dwItemData = (ULONG_PTR)this;
-        if (id)
+        if (id != menu_commands::invalid)
         {
             mii.fMask |= MIIM_ID | MIIM_STRING | MIIM_STATE;
-            mii.wID = id;
+            mii.wID = static_cast<UINT>(id);
             mii.fState = (enabled ? MFS_ENABLED : MFS_DISABLED) | (checked ? MFS_CHECKED : MFS_UNCHECKED);
             mii.dwTypeData = const_cast<LPWSTR>(caption);
         }
@@ -540,24 +547,24 @@ private:
         }
 
         if (sys_menu)
-            insert_menu(menu, 0, nullptr);
+            insert_menu(menu, menu_commands::invalid, nullptr);
     }
 
-    void execute_context_menu(int cmd, int param = 0)
+    void execute_context_menu(menu_commands cmd, int param = 0)
     {
         switch (cmd)
         {
-        case t_menu_cmd_show_flowin_on_startup:
+        case menu_commands::show_on_startup:
             host_config_->show_on_startup = !host_config_->show_on_startup;
             break;
 
-        case t_menu_cmd_always_on_top:
+        case menu_commands::always_on_top:
             host_config_->always_on_top = !host_config_->always_on_top;
             set_always_on_top(host_config_->always_on_top);
             break;
 
-        case t_menu_cmd_flowin_no_frame:
-        case t_menu_cmd_flowin_no_frame_silent:
+        case menu_commands::no_frame:
+        case menu_commands::no_frame_silent:
             if (!host_config_->show_caption)
             {
                 host_config_->show_caption = true;
@@ -581,33 +588,33 @@ private:
             }
             break;
 
-        case t_menu_cmd_show_in_taskbar:
+        case menu_commands::show_in_taskbar:
             host_config_->show_in_taskbar = !host_config_->show_in_taskbar;
             show_or_hide_on_taskbar(host_config_->show_in_taskbar);
             configure_window_style();
             break;
 
-        case t_menu_cmd_snap_to_edge:
+        case menu_commands::snap_to_edge:
             host_config_->enable_snap = !host_config_->enable_snap;
             enable_snap_ = host_config_->enable_snap;
             if (!enable_snap_)
                 RestoreFromSnapHidden();
             break;
 
-        case t_menu_cmd_snap_auto_hide:
+        case menu_commands::snap_auto_hide:
             host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
             snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
             if (!snap_auto_hide_)
                 RestoreFromSnapHidden();
             break;
 
-        case t_menu_cmd_edit_mode:
+        case menu_commands::edit_mode:
             host_config_->edit_mode = !host_config_->edit_mode;
             if (has_child())
                 element_inst_->notify(ui_element_notify_edit_mode_changed, 0, nullptr, 0);
             break;
 
-        case t_menu_cmd_destroy_element: {
+        case menu_commands::destroy_flowin: {
             pfc::string8 element_name;
             uGetWindowText(*this, element_name);
             pfc::string_formatter msg;
@@ -618,7 +625,7 @@ private:
             break;
         }
 
-        case t_menu_cmd_flowin_custom_title: {
+        case menu_commands::custom_title: {
             CCustomTitleDialog dlg(host_config_->window_title);
             if (IDOK == dlg.DoModal(*this))
             {
@@ -634,33 +641,33 @@ private:
             break;
         }
 
-        case t_menu_cmd_flowin_transparency: {
+        case menu_commands::transparency: {
             CTransparencySetDialog dlg(m_hWnd, host_config_);
             dlg.DoModal(*this);
             update_transparency();
             break;
         }
 
-        case t_menu_cmd_flowin_reset_position: {
+        case menu_commands::reset_position: {
             CenterWindow(core_api::get_main_window());
             BringWindowToTop();
             break;
         }
 
-        case t_menu_cmd_flowin_bring_to_top: {
+        case menu_commands::bring_to_top: {
             RestoreFromSnapHidden();
             set_always_on_top(!host_config_->always_on_top);
             set_always_on_top(host_config_->always_on_top);
             break;
         }
 
-        case t_menu_cmd_snap_hide:
+        case menu_commands::snap_hide:
             if (host_config_->enable_autohide_when_snapped)
                 break;
             SimulateSnapToHide();
             break;
 
-        case t_menu_cmd_snap_show:
+        case menu_commands::snap_show:
             if (host_config_->enable_autohide_when_snapped)
                 break;
             SimulateSnapToShow();
@@ -1033,7 +1040,7 @@ private:
 
     void on_sys_command(UINT id, CPoint /*point*/)
     {
-        execute_context_menu(id);
+        execute_context_menu(static_cast<menu_commands>(id));
         SetMsgHandled(FALSE);
     }
 
@@ -1184,7 +1191,7 @@ private:
 
     LRESULT on_flowin_command(UINT /*msg*/, WPARAM wp, LPARAM lp)
     {
-        execute_context_menu((t_uint32)wp, (int)lp);
+        execute_context_menu((menu_commands)wp, (int)lp);
         return TRUE;
     }
 

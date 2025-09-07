@@ -10,31 +10,34 @@ constexpr GUID main_menu_group = {0xca75bb5, 0xdb54, 0x43a1, {0x85, 0x1a, 0x47, 
 constexpr GUID main_config = {0x546661da, 0x5967, 0x45d7, {0x83, 0x6e, 0x4e, 0xdd, 0x14, 0x2b, 0xb7, 0x2f}};
 } // namespace guids
 
-namespace menu_commands
+enum class menu_commands
 {
-enum t_flowin_menu_command_id
-{
-    t_menu_cmd_new_flowin = 0x1002,
-    t_menu_cmd_show_all,
-    t_menu_cmd_close_all,
-    t_menu_cmd_always_on_top,
-    t_menu_cmd_snap_to_edge,
-    t_menu_cmd_snap_auto_hide,
-    t_menu_cmd_edit_mode,
-    t_menu_cmd_destroy_element,
-    t_menu_cmd_show_flowin,
-    t_menu_cmd_show_flowin_on_startup,
-    t_menu_cmd_flowin_custom_title,
-    t_menu_cmd_flowin_no_frame,
-    t_menu_cmd_flowin_pseudo_transparent,
-};
-} // namespace menu_commands
-
-enum USER_MESSAGE
-{
-    UWM_FLOWIN_COMMAND = WM_USER + 1102,
-    UWM_FLOWIN_REFRESH_CONFIG,
-    UWM_FLOWIN_ACTIVE,
+    invalid = 0,
+    separator = 0,
+    new_flowin = 0x1002,
+    show_all,
+    close_all,
+    always_on_top,
+    snap_to_edge,
+    snap_auto_hide,
+    snap_hide,
+    snap_show,
+    edit_mode,
+    destroy_flowin,
+    show,
+    show_on_startup,
+    custom_title,
+    no_frame,
+    no_frame_silent,
+    show_in_taskbar,
+    pseudo_transparent,
+    transparency,
+    reset_position,
+    bring_to_top,
+    show_and_hide_main_window,
+    close_and_activate_main_window,
+    identify,
+    show_info,
 };
 
 } // namespace flowin
@@ -54,37 +57,9 @@ static const GUID g_flowin_mainmenu_group_guid = {
 // {546661DA-5967-45D7-836E-4EDD142BB72F}
 static const GUID g_flowin_config_guid = {0x546661da, 0x5967, 0x45d7, {0x83, 0x6e, 0x4e, 0xdd, 0x14, 0x2b, 0xb7, 0x2f}};
 
-enum t_flowin_menu_command_id
-{
-    t_menu_cmd_new_flowin = 0x1002,
-    t_menu_cmd_show_all,
-    t_menu_cmd_close_all,
-    t_menu_cmd_always_on_top,
-    t_menu_cmd_snap_to_edge,
-    t_menu_cmd_snap_auto_hide,
-    t_menu_cmd_snap_hide,
-    t_menu_cmd_snap_show,
-    t_menu_cmd_edit_mode,
-    t_menu_cmd_destroy_element,
-    t_menu_cmd_show_flowin,
-    t_menu_cmd_show_flowin_on_startup,
-    t_menu_cmd_flowin_custom_title,
-    t_menu_cmd_flowin_no_frame,
-    t_menu_cmd_flowin_no_frame_silent,
-    t_menu_cmd_show_in_taskbar,
-    t_menu_cmd_flowin_pseudo_transparent,
-    t_menu_cmd_flowin_transparency,
-    t_menu_cmd_flowin_reset_position,
-    t_menu_cmd_flowin_bring_to_top,
-    t_menu_cmd_show_flowin_and_hide_main_window,
-    t_menu_cmd_close_flowin_and_activate_main_window,
-    t_menu_cmd_flowin_identify,
-    t_menu_cmd_flowin_show_info,
-};
-
 enum t_flowin_user_message
 {
-    UWM_FLOWIN_COMMAND = 0x0813,
+    UWM_FLOWIN_COMMAND = WM_USER + 0x1002,
     UWM_FLOWIN_REFRESH_CONFIG,
     UWM_FLOWIN_ACTIVE,
     UWM_FLOWIN_UPDATE_TRANSPARENCY,

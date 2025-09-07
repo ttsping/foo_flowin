@@ -6,6 +6,7 @@
 
 namespace
 {
+using namespace flowin;
 class flowin_mainmenu_node_command : public mainmenu_node_command
 {
 public:
@@ -21,7 +22,7 @@ public:
         if (has_dynamic_config_)
             load_config();
 
-        if (node_->id == t_menu_cmd_flowin_identify)
+        if (node_->id == menu_commands::identify)
         {
             text = config_ ? config_->window_title : "Unknown";
             flags = mainmenu_commands::flag_disabled;
@@ -84,9 +85,9 @@ private:
     {
         switch (node_->id)
         {
-        case t_menu_cmd_new_flowin:
-        case t_menu_cmd_show_all:
-        case t_menu_cmd_close_all:
+        case menu_commands::new_flowin:
+        case menu_commands::show_all:
+        case menu_commands::close_all:
             return false;
 
         default:
@@ -130,7 +131,7 @@ public:
         {
             if (node->child_group != nullptr)
                 menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(node->child_group));
-            else if (node->id == 0)
+            else if (node->id == menu_commands::invalid)
                 menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
             else
                 menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));

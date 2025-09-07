@@ -4,6 +4,7 @@
 #include "flowin_config.h"
 #include "flowin_vars.h"
 
+using namespace flowin;
 using cfg_t = cfg_flowin_host::sp_t;
 
 inline bool is_flowin_alive(const cfg_t& config)
@@ -17,7 +18,7 @@ inline void notify_flowin(const cfg_t& config, uint32_t msg, WPARAM wp = 0, LPAR
         flowin_core::get()->post_message(config->guid, msg, wp, lp);
 }
 
-inline void notify_flowin_command(const cfg_t& config, uint32_t cmd, LPARAM lp = 0)
+inline void notify_flowin_command(const cfg_t& config, menu_commands cmd, LPARAM lp = 0)
 {
     notify_flowin(config, UWM_FLOWIN_COMMAND, (WPARAM)cmd, lp);
 }
@@ -53,7 +54,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
 
     if (auto group = flowin_menu_group::new_group(0 /*not used*/))
     {
-        if (auto node = group->new_node(t_menu_cmd_show_flowin, "Show", flowin_menu_show_on_flowin))
+        if (auto node = group->new_node(menu_commands::show, "Show", flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
             {
@@ -76,7 +77,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_show_flowin_on_startup, "Show on startup",
+        if (auto node = group->new_node(menu_commands::show_on_startup, "Show on startup",
                                         flowin_menu_show_on_flowin | flowin_menu_show_on_system_menu))
         {
             node->action = [](cfg_t& config)
@@ -94,7 +95,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_always_on_top, "Always on top", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::always_on_top, "Always on top", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config)
             {
@@ -116,7 +117,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_flowin_bring_to_top, "Bring to top", flowin_menu_show_on_main_menu))
+        if (auto node = group->new_node(menu_commands::bring_to_top, "Bring to top", flowin_menu_show_on_main_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -129,7 +130,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_flowin_no_frame, "No window frame", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::no_frame, "No window frame", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config)
             {
@@ -151,7 +152,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_flowin_no_frame_silent, "No window frame (slient)",
+        if (auto node = group->new_node(menu_commands::no_frame_silent, "No window frame (slient)",
                                         flowin_menu_show_on_main_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
@@ -166,7 +167,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -181,7 +182,8 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
+        if (auto node =
+                group->new_node(menu_commands::snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -197,13 +199,13 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
         }
 
         // new snap group
-        if (auto snap_group_node = group->new_node(0, "", flowin_menu_show_on_all))
+        if (auto snap_group_node = group->new_node(menu_commands::invalid, "", flowin_menu_show_on_all))
         {
             auto snap_group = flowin_menu_group::new_group(flowin_menu_group_submenu, "Snap");
             snap_group_node->child_group = snap_group;
 
             if (auto node =
-                    snap_group->new_node(t_menu_cmd_snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
+                    snap_group->new_node(menu_commands::snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
             {
                 node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -217,8 +219,8 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 };
             }
 
-            if (auto node =
-                    snap_group->new_node(t_menu_cmd_snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
+            if (auto node = snap_group->new_node(menu_commands::snap_auto_hide, "Auto hide when snapped",
+                                                 flowin_menu_show_on_all))
             {
                 node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -232,7 +234,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 };
             }
 
-            if (auto node = snap_group->new_node(t_menu_cmd_snap_hide, "Hide", flowin_menu_show_on_all))
+            if (auto node = snap_group->new_node(menu_commands::snap_hide, "Hide", flowin_menu_show_on_all))
             {
                 node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -241,12 +243,12 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                     uint32_t flags = 0;
                     flags_require_config();
                     flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
-                    //flags_default_hidden();
+                    // flags_default_hidden();
                     return flags;
                 };
             }
 
-            if (auto node = snap_group->new_node(t_menu_cmd_snap_show, "Show", flowin_menu_show_on_all))
+            if (auto node = snap_group->new_node(menu_commands::snap_show, "Show", flowin_menu_show_on_all))
             {
                 node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -255,14 +257,13 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                     uint32_t flags = 0;
                     flags_require_config();
                     flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
-                    //flags_default_hidden();
+                    // flags_default_hidden();
                     return flags;
                 };
             }
         }
 
-        if (auto node =
-                group->new_node(t_menu_cmd_flowin_reset_position, "Reset position", flowin_menu_show_on_main_menu))
+        if (auto node = group->new_node(menu_commands::reset_position, "Reset position", flowin_menu_show_on_main_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -275,7 +276,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_edit_mode, "Edit mode", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::edit_mode, "Edit mode", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -289,19 +290,17 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node =
-                group->new_node(t_menu_cmd_flowin_custom_title, "Custom title", flowin_menu_show_on_system_menu))
+        if (auto node = group->new_node(menu_commands::custom_title, "Custom title", flowin_menu_show_on_system_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
         }
 
-        if (auto node =
-                group->new_node(t_menu_cmd_flowin_transparency, "Transparency", flowin_menu_show_on_system_menu))
+        if (auto node = group->new_node(menu_commands::transparency, "Transparency", flowin_menu_show_on_system_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_flowin_show_info, "Info", flowin_menu_show_on_flowin))
+        if (auto node = group->new_node(menu_commands::show_info, "Info", flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
             {
@@ -322,7 +321,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_destroy_element, "Delete", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::destroy_flowin, "Delete", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -335,7 +334,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_show_flowin_and_hide_main_window, "Show flowin and hide main window",
+        if (auto node = group->new_node(menu_commands::show_and_hide_main_window, "Show flowin and hide main window",
                                         flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
@@ -359,7 +358,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(t_menu_cmd_close_flowin_and_activate_main_window,
+        if (auto node = group->new_node(menu_commands::close_and_activate_main_window,
                                         "Close flowin and activate main window", flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
@@ -395,12 +394,12 @@ flowin_menu_group_list build_flowin_menu_groups()
     // root
     if (auto root = flowin_menu_group::new_group(flowin_menu_group_root))
     {
-        if (auto node = root->new_node(t_menu_cmd_new_flowin, "New flowin"))
+        if (auto node = root->new_node(menu_commands::new_flowin, "New flowin"))
         {
             node->action = [](cfg_t&) { flowin_core::get()->create_flowin(); };
         }
 
-        if (auto node = root->new_node(t_menu_cmd_show_all, "Show all"))
+        if (auto node = root->new_node(menu_commands::show_all, "Show all"))
         {
             node->action = [](cfg_t&)
             {
@@ -424,7 +423,7 @@ flowin_menu_group_list build_flowin_menu_groups()
             };
         }
 
-        if (auto node = root->new_node(t_menu_cmd_close_all, "Close all"))
+        if (auto node = root->new_node(menu_commands::close_all, "Close all"))
         {
             node->action = [](cfg_t&)
             { configuration::for_each([](const cfg_flowin_host::sp_t& config) { notify_flowin(config, WM_CLOSE); }); };
@@ -447,9 +446,9 @@ flowin_menu_group_list build_flowin_menu_groups()
             if (auto active = flowin_menu_group::new_group(flowin_menu_group_active))
             {
                 // identify
-                active->new_node(t_menu_cmd_flowin_identify, "", flowin_menu_show_on_active);
+                active->new_node(menu_commands::identify, "", flowin_menu_show_on_active);
                 // separator
-                active->new_node(0, "", flowin_menu_show_on_active);
+                active->new_node(menu_commands::separator, "", flowin_menu_show_on_active);
                 // shared nodes
                 for (auto& node : shared_nodes)
                 {
