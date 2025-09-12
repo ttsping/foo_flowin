@@ -1,0 +1,53 @@
+name: MSBuild
+
+on:
+  workflow_dispatch:
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: latest
+
+    - name: Create foobar2000 components directory
+      run: |
+        $platforms = @('win32', 'x64')
+        foreach ($platform in $platforms) {
+          $targetDir = Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath "..\foobar2000\$platform\foobar2000\components"
+          New-Item -ItemType Directory -Force -Path $targetDir
+        }
+      shell: pwsh
+
+    - name: Build
+      working-directory: ${{env.SOLUTION_FILE_PATH}}
+      run: python build.py --rebuild
+
+    - name: Upload fb2k-component artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: foo_flowin.fb2k-component
+        path: ${{env.SOLUTION_FILE_PATH}}/foo_flowin.fb2k-component
