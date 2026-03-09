@@ -353,6 +353,8 @@ public:
             }
 
             host_config_->write_subelement(cfg);
+            // initial notify
+            element_inst_->notify(ui_element_notify_visibility_changed, (t_size)true, nullptr, 0);
         }
     }
 
