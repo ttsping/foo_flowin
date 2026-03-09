@@ -38,6 +38,7 @@ enum class menu_commands
     close_and_activate_main_window,
     identify,
     show_info,
+    hide_when_hover,
 };
 
 } // namespace flowin

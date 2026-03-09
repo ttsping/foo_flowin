@@ -23,28 +23,12 @@ inline void notify_flowin_command(const cfg_t& config, menu_commands cmd, LPARAM
     notify_flowin(config, UWM_FLOWIN_COMMAND, (WPARAM)cmd, lp);
 }
 
-#define flags_disable(cond)                                                                                            \
-    {                                                                                                                  \
-        if (cond)                                                                                                      \
-            flags |= mainmenu_commands::flag_disabled;                                                                 \
-    }
-
-#define flags_check(cond)                                                                                              \
-    {                                                                                                                  \
-        if (cond)                                                                                                      \
-            flags |= mainmenu_commands::flag_checked;                                                                  \
-    }
-
-#define flags_require_config()                                                                                         \
-    {                                                                                                                  \
-        if (config == nullptr)                                                                                         \
-            flags |= mainmenu_commands::flag_disabled;                                                                 \
-    }
-
-#define flags_default_hidden()                                                                                         \
-    {                                                                                                                  \
-        flags |= mainmenu_commands::flag_defaulthidden;                                                                \
-    }
+// clang-format off
+#define flags_disable(cond) { if (cond) flags |= mainmenu_commands::flag_disabled; }
+#define flags_check(cond) { if (cond) flags |= mainmenu_commands::flag_checked; }
+#define flags_require_config() { if (config == nullptr) flags |= mainmenu_commands::flag_disabled; }
+#define flags_default_hidden() { flags |= mainmenu_commands::flag_defaulthidden; }
+// clang-format on
 
 flowin_menu_group::sp_t build_flowin_menu_nodes()
 {
@@ -293,6 +277,19 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
         if (auto node = group->new_node(menu_commands::custom_title, "Custom title", flowin_menu_show_on_system_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+        }
+
+        if (auto node = group->new_node(menu_commands::hide_when_hover, "Hide when hover", flowin_menu_show_on_all))
+        {
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+            node->get_flags = [](const cfg_t& config)
+            {
+                uint32_t flags = 0;
+                flags_require_config();
+                flags_check(config && config->hide_when_hover);
+                return flags;
+            };
         }
 
         if (auto node = group->new_node(menu_commands::transparency, "Transparency", flowin_menu_show_on_system_menu))

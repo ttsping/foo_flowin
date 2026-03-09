@@ -177,6 +177,7 @@ protected:
                     StartSnapAnimateTimer();
             }
         }
+        static_cast<T*>(this)->snap_window_on_hover_mouse_enter();
         return 0;
     }
 
@@ -187,6 +188,7 @@ protected:
         {
             StartSnapAnimateTimer();
         }
+        static_cast<T*>(this)->snap_window_on_hover_mouse_leave();
         return 0;
     }
 

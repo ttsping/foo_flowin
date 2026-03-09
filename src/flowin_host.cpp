@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <shobjidl.h>
 #include <comdef.h>
 #include <dwmapi.h>
@@ -473,6 +473,56 @@ private:
         PostMessage(UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency);
     }
 
+    void apply_hover_hide_alpha(BYTE alpha)
+    {
+        ModifyStyleEx(0, WS_EX_LAYERED);
+        SetLayeredWindowAttributes(*this, 0, alpha, LWA_ALPHA);
+    }
+
+    void start_hover_hide_animation(bool hiding)
+    {
+        if (!hiding)
+        {
+            simulate_hover_hide(false);
+        }
+
+        is_hover_hiding_ = hiding;
+        if (hover_hide_timer_ == NULL)
+        {
+            hover_hide_timer_ = SetTimer(kHoverHideTimerID, 20);
+        }
+    }
+
+    void on_hover_mouse_enter()
+    {
+        if (!host_config_->hide_when_hover)
+            return;
+
+        start_hover_hide_animation(true);
+    }
+
+    void on_hover_mouse_leave()
+    {
+        if (!host_config_->hide_when_hover)
+            return;
+
+        start_hover_hide_animation(false);
+    }
+
+public:
+    void snap_window_on_hover_mouse_enter()
+    {
+        on_hover_mouse_enter();
+    }
+
+    void snap_window_on_hover_mouse_leave()
+    {
+        if (!is_hover_hiding_ || hover_hide_alpha_ > 0)
+        {
+            on_hover_mouse_leave();
+        }
+    }
+
     void set_always_on_top(bool on_top)
     {
         SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{0}, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
@@ -640,7 +690,7 @@ private:
             pfc::string8 element_name;
             uGetWindowText(*this, element_name);
             pfc::string_formatter msg;
-            msg << " You are about to delete \"" << uGetWindowText(*this).c_str()
+            msg << " You are about to delete \"" << element_name
                 << "\".\n This action cannot be undone.  Do you want to continue?";
             if (uMessageBox(*this, msg, "Warning", MB_OKCANCEL | MB_ICONWARNING) == IDOK)
                 fb2k::inMainThread([this]() { flowin_core::get()->remove_flowin(this->host_config_->guid, true); });
@@ -693,6 +743,29 @@ private:
             if (host_config_->enable_autohide_when_snapped)
                 break;
             SimulateSnapToShow();
+            break;
+
+        case menu_commands::hide_when_hover:
+            host_config_->hide_when_hover = !host_config_->hide_when_hover;
+            if (host_config_->hide_when_hover)
+            {
+                pfc::string8 window_title;
+                uGetWindowText(*this, window_title);
+                pfc::string_formatter msg;
+                msg << "Hover hide is now enabled for \"" << window_title << "\".\n\n"
+                    << "Note: When the mouse enters this window, it will become invisible.\n"
+                    << "You won't be able to interact with the panel until the mouse leaves.\n\n"
+                    << "To disable: Main Menu -> View -> Flowin -> " << window_title << " -> Hide when hover";
+                uMessageBox(*this, msg, "Hide when hover", MB_OK | MB_ICONINFORMATION);
+            }
+            else
+            {
+                KillTimer(kHoverHideTimerID);
+                KillTimer(kHoverHideCheckTimerID);
+                hover_hide_timer_ = NULL;
+                is_hover_hiding_ = false;
+                simulate_hover_hide(false, true);
+            }
             break;
 
         default:
@@ -825,10 +898,25 @@ private:
             show_or_hide_on_taskbar(false);
 
         if (is_transparency_enabled())
-            update_transparency();
+            on_update_transparency(0, (WPARAM)host_config_->transparency, 0);
 
         if (!host_config_->always_on_top)
             bring_window_to_top();
+
+        if (host_config_->hide_when_hover)
+        {
+            POINT pt;
+            GetCursorPos(&pt);
+            RECT rect;
+            GetWindowRect(&rect);
+
+            if (PtInRect(&rect, pt))
+            {
+                simulate_hover_hide(true, true);
+                is_hover_hiding_ = true;
+                hover_hide_timer_ = SetTimer(kHoverHideCheckTimerID, 100);
+            }
+        }
 
         return TRUE;
     }
@@ -1208,6 +1296,66 @@ private:
             return;
         }
 
+        if (id == kHoverHideTimerID)
+        {
+            const int32_t max_alpha = (int32_t)(255.0 - host_config_->transparency * 255.0 / 100);
+            const int32_t delta = 51;
+            const int32_t target_alpha = is_hover_hiding_ ? 0 : max_alpha;
+
+            if (hover_hide_alpha_ < target_alpha)
+            {
+                hover_hide_alpha_ = min(target_alpha, hover_hide_alpha_ + delta);
+            }
+            else if (hover_hide_alpha_ > target_alpha)
+            {
+                hover_hide_alpha_ = max(target_alpha, hover_hide_alpha_ - delta);
+            }
+
+            apply_hover_hide_alpha((BYTE)hover_hide_alpha_);
+
+            if (hover_hide_alpha_ == target_alpha)
+            {
+                if (is_hover_hiding_ && hover_hide_alpha_ == 0)
+                {
+                    simulate_hover_hide(true);
+                    KillTimer(kHoverHideTimerID);
+                    hover_hide_timer_ = SetTimer(kHoverHideCheckTimerID, 100);
+                }
+                else
+                {
+                    KillTimer(id);
+                    hover_hide_timer_ = NULL;
+                }
+            }
+
+            return;
+        }
+
+        if (id == kHoverHideCheckTimerID)
+        {
+            if (is_hover_hiding_ && hover_hide_alpha_ == 0)
+            {
+                POINT pt;
+                GetCursorPos(&pt);
+                RECT rect;
+                GetWindowRect(&rect);
+
+                if (!PtInRect(&rect, pt))
+                {
+                    KillTimer(id);
+                    hover_hide_timer_ = NULL;
+                    start_hover_hide_animation(false);
+                }
+            }
+            else
+            {
+                KillTimer(id);
+                hover_hide_timer_ = NULL;
+            }
+
+            return;
+        }
+
         SetMsgHandled(FALSE);
     }
 
@@ -1276,6 +1424,35 @@ private:
         return 0;
     }
 
+    void simulate_hover_hide(bool hide, bool overrride_alpha = false)
+    {
+        if (hide)
+        {
+            if (overrride_alpha)
+            {
+                hover_hide_alpha_ = 0;
+                apply_hover_hide_alpha(0);
+            }
+
+            ModifyStyleEx(0, WS_EX_TRANSPARENT);
+            if (host_config_->show_in_taskbar)
+                show_or_hide_on_taskbar(false);
+        }
+        else
+        {
+            if (overrride_alpha)
+            {
+                const BYTE max_alpha = (BYTE)(255.0 - host_config_->transparency * 255.0 / 100);
+                hover_hide_alpha_ = max_alpha;
+                apply_hover_hide_alpha(max_alpha);
+            }
+
+            ModifyStyleEx(WS_EX_TRANSPARENT, 0);
+            if (host_config_->show_in_taskbar)
+                show_or_hide_on_taskbar(true);
+        }
+    }
+
 private:
     // fix me. not standard impl
     ui_element_config::ptr dummy_config_;
@@ -1285,8 +1462,13 @@ private:
     bool is_perform_drag_ = false;
     POINT drag_point_;
     const int kTransparencyTimerID = 0x1001;
+    const int kHoverHideTimerID = 0x1003;
+    const int kHoverHideCheckTimerID = 0x1004;
     UINT_PTR transparency_timer_ = 0;
+    UINT_PTR hover_hide_timer_ = 0;
     int32_t tranparency_intermediate_ = -1;
+    int32_t hover_hide_alpha_ = 255;
+    bool is_hover_hiding_ = false;
     DarkMode::CHooks dark_mode_hooks_;
     std::vector<flowin_menu_node::sp_t> menu_nodes_;
     bool interrupt_context_menu_ = false;

@@ -14,7 +14,8 @@ enum t_flowin_config_version
 {
     t_version_010 = 1,
     t_version_011 = 3,
-    t_version_current = t_version_011
+    t_version_012 = 5,
+    t_version_current = t_version_012
 };
 
 void cfg_flowin_host::reset()
@@ -37,6 +38,7 @@ void cfg_flowin_host::reset()
     enable_transparency_active = false;
     transparency = 0;
     transparency_active = 0;
+    hide_when_hover = false;
     ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
     cfg_no_frame.shadowed = true;
     cfg_no_frame.resizable = true;
@@ -44,7 +46,8 @@ void cfg_flowin_host::reset()
     cfg_no_frame.rounded_corner = true;
 
     ZeroMemory(&window_rect, sizeof(window_rect));
-    ZeroMemory(&reserved, sizeof(reserved));
+    ZeroMemory(reserved, sizeof(reserved));
+    ZeroMemory(bool_reserved, sizeof(bool_reserved));
 }
 
 void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_callback& abort)
@@ -59,13 +62,17 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
         reader->read_lendian_t(version, abort);
         switch (version)
         {
+        case t_version_012:
+            reader->read_object_t(hide_when_hover, abort);
+            reader->read_object(bool_reserved, sizeof(bool_reserved), abort);
+            [[fallthrough]];
         case t_version_011:
             reader->read_object_t(enable_transparency_active, abort);
             reader->read_lendian_t(transparency, abort);
             reader->read_lendian_t(transparency_active, abort);
             reader->read_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
             reader->read_object_t(show_in_taskbar, abort);
-            reader->read_object(bool_dummy, sizeof(bool_dummy), abort);
+            reader->read_object(do_not_use, sizeof(do_not_use), abort);
             reader->read_object(reserved, sizeof(reserved), abort);
             [[fallthrough]];
         case t_version_010:
@@ -105,13 +112,16 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
     {
         uint32_t ver = t_version_current;
         writer->write_lendian_t(ver, abort);
+        // version 012
+        writer->write_object_t(hide_when_hover, abort);
+        writer->write_object(bool_reserved, sizeof(bool_reserved), abort);
         // version 011
         writer->write_object_t(enable_transparency_active, abort);
         writer->write_lendian_t(transparency, abort);
         writer->write_lendian_t(transparency_active, abort);
         writer->write_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
         writer->write_object_t(show_in_taskbar, abort);
-        writer->write_object(bool_dummy, sizeof(bool_dummy), abort);
+        writer->write_object(do_not_use, sizeof(do_not_use), abort);
         writer->write_object(reserved, sizeof(reserved), abort);
         // version 010
         writer->write_object_t(guid, abort);
@@ -268,9 +278,11 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
 
     try
     {
+        static_assert(t_version_current == t_version_012);
         p_stream->read_lendian_t(version, p_abort);
         switch (version)
         {
+        case t_version_012:
         case t_version_011:
         case t_version_010: {
             p_stream->read_lendian_t(show_debug_log, p_abort);

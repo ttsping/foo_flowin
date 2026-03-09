@@ -55,7 +55,11 @@ public:
     static_assert(sizeof(cfg_no_frame) == sizeof(uint8_t) * 4, "unexpected no-frame configuration size");
 
     bool show_in_taskbar;
-    bool bool_dummy[3];
+    bool hide_when_hover;
+
+    bool bool_reserved[32];
+
+    bool do_not_use[3];
     uint32_t reserved[18];
     // internal use
     bool edit_mode;
