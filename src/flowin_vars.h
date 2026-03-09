@@ -29,7 +29,7 @@ enum class menu_commands
     custom_title,
     no_frame,
     no_frame_silent,
-    show_in_taskbar,
+    show_on_taskbar,
     pseudo_transparent,
     transparency,
     reset_position,

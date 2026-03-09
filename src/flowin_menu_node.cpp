@@ -274,6 +274,20 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
+        if (auto node = group->new_node(menu_commands::show_on_taskbar, "Show on taskbar", flowin_menu_show_on_system_menu))
+        {
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+            node->get_flags = [](const cfg_t& config)
+            {
+                uint32_t flags = 0;
+                flags_require_config();
+                flags_check(config && config->show_in_taskbar);
+                flags_disable(!is_flowin_alive(config));
+                return flags;
+            };
+        }
+
         if (auto node = group->new_node(menu_commands::custom_title, "Custom title", flowin_menu_show_on_system_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };

@@ -660,7 +660,7 @@ public:
             }
             break;
 
-        case menu_commands::show_in_taskbar:
+        case menu_commands::show_on_taskbar:
             host_config_->show_in_taskbar = !host_config_->show_in_taskbar;
             show_or_hide_on_taskbar(host_config_->show_in_taskbar);
             configure_window_style();
