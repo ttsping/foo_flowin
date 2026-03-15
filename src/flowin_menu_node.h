@@ -19,6 +19,7 @@ enum : uint32_t
     flowin_menu_show_on_active = 1 << 1,
     flowin_menu_show_on_flowin = 1 << 2,
     flowin_menu_show_on_system_menu = 1 << 3,
+    flowin_menu_show_shift_only = 1 << 4,
     flowin_menu_show_on_main_menu = flowin_menu_show_on_active | flowin_menu_show_on_flowin,
     flowin_menu_show_on_all = flowin_menu_show_on_main_menu | flowin_menu_show_on_system_menu,
 };

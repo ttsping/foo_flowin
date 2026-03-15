@@ -345,6 +345,35 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
+        // Export/Import config (Shift+Right-click only)
+        if (auto node = group->new_node(menu_commands::export_config, "Export configuration",
+                                        flowin_menu_show_on_system_menu | flowin_menu_show_shift_only))
+        {
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+            node->get_flags = [](const cfg_t& config)
+            {
+                uint32_t flags = 0;
+                flags_require_config();
+                flags_disable(!is_flowin_alive(config));
+                return flags;
+            };
+        }
+
+        if (auto node = group->new_node(menu_commands::import_config, "Import configuration",
+                                        flowin_menu_show_on_system_menu | flowin_menu_show_shift_only))
+        {
+            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+
+            node->get_flags = [](const cfg_t& config)
+            {
+                uint32_t flags = 0;
+                flags_require_config();
+                flags_disable(!is_flowin_alive(config));
+                return flags;
+            };
+        }
+
         if (auto node = group->new_node(menu_commands::show_and_hide_main_window, "Show flowin and hide main window",
                                         flowin_menu_show_on_flowin))
         {

@@ -19,6 +19,24 @@
 
 #pragma comment(lib, "dwmapi.lib")
 
+// COM smart pointer typedefs for file dialogs
+_COM_SMARTPTR_TYPEDEF(IFileSaveDialog, __uuidof(IFileSaveDialog));
+_COM_SMARTPTR_TYPEDEF(IFileOpenDialog, __uuidof(IFileOpenDialog));
+_COM_SMARTPTR_TYPEDEF(IShellItem, __uuidof(IShellItem));
+
+// Flowin config file header
+#pragma pack(push, 1)
+struct fwcfg_header_t
+{
+    uint32_t magic;     // Magic number: "FGCF" = 0x46474346
+    uint32_t data_size; // Size of config data
+    uint32_t data_crc;  // CRC32 of config data
+};
+#pragma pack(pop)
+
+static constexpr uint32_t FWCFG_MAGIC = 0x46435746; // "FWCF" = Flowin Window Config File
+static constexpr size_t FWCFG_HEADER_SIZE = sizeof(fwcfg_header_t);
+
 using namespace flowin;
 
 // clang-format off
@@ -599,6 +617,9 @@ public:
 
     void build_context_menu(HMENU menu, bool sys_menu = true)
     {
+        // Check if Shift key is pressed
+        const bool shift_pressed = IsKeyPressed(VK_SHIFT);
+
         if (menu_nodes_.empty())
         {
             if (auto group_nodes = build_flowin_menu_nodes())
@@ -613,6 +634,10 @@ public:
 
         for (auto& node : menu_nodes_)
         {
+            // Skip shift-only menu items if shift is not pressed
+            if ((node->show_flags & flowin_menu_show_shift_only) && !shift_pressed)
+                continue;
+
             pfc::stringcvt::string_wide_from_utf8 caption(node->text.c_str());
             const uint32_t flags = node->get_flags(host_config_);
             const bool enabled = !(flags & mainmenu_commands::flag_disabled);
@@ -768,6 +793,14 @@ public:
                 is_hover_hiding_ = false;
                 simulate_hover_hide(false, true);
             }
+            break;
+
+        case menu_commands::export_config:
+            export_config_to_file();
+            break;
+
+        case menu_commands::import_config:
+            import_config_from_file();
             break;
 
         default:
@@ -1452,6 +1485,251 @@ private:
             ModifyStyleEx(WS_EX_TRANSPARENT, 0);
             if (host_config_->show_in_taskbar)
                 show_or_hide_on_taskbar(true);
+        }
+    }
+
+    // Remove invalid characters from filename
+    static pfc::string8 sanitize_filename(const char* filename)
+    {
+        pfc::string8 result;
+        const char* invalid_chars = "\\/:*?\"<>|";
+        for (t_size i = 0; filename[i] != '\0'; ++i)
+        {
+            bool is_invalid = false;
+            for (int j = 0; invalid_chars[j] != '\0'; ++j)
+            {
+                if (filename[i] == invalid_chars[j])
+                {
+                    is_invalid = true;
+                    break;
+                }
+            }
+            if (!is_invalid)
+                result.add_char(filename[i]);
+        }
+        return result;
+    }
+
+    void export_config_to_file()
+    {
+        // Get default filename from window title
+        pfc::string8 default_name = sanitize_filename(host_config_->window_title);
+        if (default_name.is_empty())
+            default_name = "flowin";
+
+        pfc::stringcvt::string_wide_from_utf8 default_name_wide(default_name);
+
+        // Create file save dialog using COM
+        IFileSaveDialogPtr file_dialog;
+        if (SUCCEEDED(file_dialog.CreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER)))
+        {
+            // Set file types
+            COMDLG_FILTERSPEC file_types[] = {{L"Flowin Config Files", L"*.fwcfg"}, {L"All Files", L"*.*"}};
+            file_dialog->SetFileTypes(ARRAYSIZE(file_types), file_types);
+            file_dialog->SetDefaultExtension(L"fwcfg");
+            file_dialog->SetFileName(default_name_wide);
+            file_dialog->SetOptions(FOS_OVERWRITEPROMPT | FOS_PATHMUSTEXIST);
+
+            if (SUCCEEDED(file_dialog->Show(*this)))
+            {
+                IShellItemPtr result_item;
+                if (SUCCEEDED(file_dialog->GetResult(&result_item)))
+                {
+                    LPWSTR file_path = nullptr;
+                    if (SUCCEEDED(result_item->GetDisplayName(SIGDN_FILESYSPATH, &file_path)))
+                    {
+                        try
+                        {
+                            // Refresh config
+                            if (IsWindow())
+                                SendMessage(UWM_FLOWIN_REFRESH_CONFIG);
+
+                            // Serialize config data
+                            stream_writer_buffer_simple writer;
+                            host_config_->get_data_raw(&writer, fb2k::noAbort);
+
+                            // Write to file
+                            HANDLE file_handle = CreateFileW(file_path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                                             FILE_ATTRIBUTE_NORMAL, nullptr);
+                            if (file_handle != INVALID_HANDLE_VALUE)
+                            {
+                                // Build header
+                                fwcfg_header_t header;
+                                header.magic = FWCFG_MAGIC;
+                                header.data_size = (uint32_t)writer.m_buffer.get_size();
+                                header.data_crc = utils::calculate_crc32(writer.m_buffer.get_ptr(), writer.m_buffer.get_size());
+
+                                // Write header
+                                DWORD bytes_written = 0;
+                                BOOL rc = WriteFile(file_handle, &header, FWCFG_HEADER_SIZE, &bytes_written, nullptr);
+                                DWORD err = GetLastError();
+
+                                // Write data
+                                if (rc && bytes_written == FWCFG_HEADER_SIZE)
+                                {
+                                    rc = WriteFile(file_handle, writer.m_buffer.get_ptr(),
+                                                   (DWORD)writer.m_buffer.get_size(), &bytes_written, nullptr);
+                                    if (!rc)
+                                        err = GetLastError();
+                                }
+
+                                CloseHandle(file_handle);
+
+                                if (!rc || bytes_written != writer.m_buffer.get_size())
+                                {
+                                    pfc::string8_fast win_err;
+                                    pfc::string8_fast msg;
+                                    msg << "Failed to write configuration file.";
+                                    if (pfc::winFormatSystemErrorMessage(win_err, err))
+                                        msg << "\r\nError: " << win_err;
+                                    uMessageBox(*this, msg, "Export Error", MB_OK | MB_ICONERROR);
+                                }
+                            }
+                            else
+                            {
+                                uMessageBox(*this, "Failed to save configuration file.", "Export Error",
+                                            MB_OK | MB_ICONERROR);
+                            }
+                        }
+                        catch (std::exception&)
+                        {
+                            uMessageBox(*this, "Failed to export configuration.", "Export Error", MB_OK | MB_ICONERROR);
+                        }
+
+                        CoTaskMemFree(file_path);
+                    }
+                }
+            }
+        }
+    }
+
+    void import_config_from_file()
+    {
+        // Confirm before import
+        if (uMessageBox(*this,
+                        "Importing configuration will replace the current flowin window.\n\nDo you want to continue?",
+                        "Import Configuration", MB_YESNO | MB_ICONQUESTION) != IDYES)
+        {
+            return;
+        }
+
+        // Create file open dialog using COM
+        IFileOpenDialogPtr file_dialog;
+        if (SUCCEEDED(file_dialog.CreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER)))
+        {
+            // Set file types
+            COMDLG_FILTERSPEC file_types[] = {{L"Flowin Config Files", L"*.fwcfg"}, {L"All Files", L"*.*"}};
+            file_dialog->SetFileTypes(ARRAYSIZE(file_types), file_types);
+            file_dialog->SetDefaultExtension(L"fwcfg");
+            file_dialog->SetOptions(FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST);
+
+            if (SUCCEEDED(file_dialog->Show(*this)))
+            {
+                IShellItemPtr result_item;
+                if (SUCCEEDED(file_dialog->GetResult(&result_item)))
+                {
+                    LPWSTR file_path = nullptr;
+                    if (SUCCEEDED(result_item->GetDisplayName(SIGDN_FILESYSPATH, &file_path)))
+                    {
+                        try
+                        {
+                            // Read file content
+                            HANDLE file_handle = CreateFileW(file_path, GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                            if (file_handle == INVALID_HANDLE_VALUE)
+                            {
+                                uMessageBox(*this, "Failed to open configuration file.", "Import Error",
+                                            MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+
+                            DWORD file_size = GetFileSize(file_handle, nullptr);
+                            if (file_size == INVALID_FILE_SIZE || file_size < FWCFG_HEADER_SIZE)
+                            {
+                                CloseHandle(file_handle);
+                                uMessageBox(*this, "Invalid configuration file: file too small.", "Import Error", MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+
+                            // Read entire file
+                            pfc::array_t<uint8_t> buffer;
+                            buffer.set_size(file_size);
+                            DWORD bytes_read = 0;
+                            if (!ReadFile(file_handle, buffer.get_ptr(), file_size, &bytes_read, nullptr) ||
+                                bytes_read != file_size)
+                            {
+                                CloseHandle(file_handle);
+                                uMessageBox(*this, "Failed to read configuration file.", "Import Error",
+                                            MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+                            CloseHandle(file_handle);
+
+                            // Parse and validate header
+                            const fwcfg_header_t* header = reinterpret_cast<const fwcfg_header_t*>(buffer.get_ptr());
+                            if (header->magic != FWCFG_MAGIC)
+                            {
+                                uMessageBox(*this, "Invalid configuration file: wrong file format.", "Import Error",
+                                            MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+
+                            if (header->data_size != file_size - FWCFG_HEADER_SIZE)
+                            {
+                                uMessageBox(*this, "Invalid configuration file: data size mismatch.", "Import Error",
+                                            MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+
+                            // Verify CRC
+                            const uint32_t calculated_crc = utils::calculate_crc32(buffer.get_ptr() + FWCFG_HEADER_SIZE, header->data_size);
+                            if (header->data_crc != calculated_crc)
+                            {
+                                uMessageBox(*this, "Invalid configuration file: CRC check failed.", "Import Error",
+                                            MB_OK | MB_ICONERROR);
+                                CoTaskMemFree(file_path);
+                                return;
+                            }
+
+                            // Store the current GUID before removal
+                            GUID old_guid = host_config_->guid;
+
+                            // Generate new GUID for imported config
+                            GUID new_guid;
+                            CoCreateGuid(&new_guid);
+
+                            // Create new config and load data from file
+                            auto new_config = cfg_flowin::get()->add_or_find_configuration(new_guid);
+                            if (new_config)
+                            {
+                                stream_reader_memblock_ref reader(buffer.get_ptr() + FWCFG_HEADER_SIZE, header->data_size);
+                                new_config->set_data_raw(&reader, header->data_size, fb2k::noAbort);
+                                // Restore the GUID we generated
+                                new_config->guid = new_guid;
+                            }
+
+                            // Save reference to flowin_core
+                            auto core = flowin_core::get();
+
+                            // Remove current flowin (window + config)
+                            core->remove_flowin(old_guid, true);
+
+                            // Create new flowin window
+                            core->create_flowin(new_guid);
+                        }
+                        catch (std::exception&)
+                        {
+                            uMessageBox(*this, "Failed to import configuration.", "Import Error", MB_OK | MB_ICONERROR);
+                        }
+                        CoTaskMemFree(file_path);
+                    }
+                }
+            }
         }
     }
 

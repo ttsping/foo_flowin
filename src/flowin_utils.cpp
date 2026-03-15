@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "flowin_utils.h"
+#include <array>
 #include <mutex>
 #include <dwmapi.h>
 
@@ -69,4 +70,37 @@ int32_t get_system_metrics(int32_t index, uint32_t dpi)
     return rc;
 }
 
-} // namespace flowin_utils
+uint32_t calculate_crc32(const void* data, size_t size)
+{
+    auto generate_table = []() constexpr
+    {
+        std::array<uint32_t, 256> table{};
+        for (uint32_t i = 0; i < 256; ++i)
+        {
+            uint32_t crc = i;
+            for (uint32_t j = 0; j < 8; ++j)
+            {
+                // 0xEDB88320 is the reversed polynomial for IEEE 802.3
+                if (crc & 1)
+                    crc = (crc >> 1) ^ 0xEDB88320;
+                else
+                    crc >>= 1;
+            }
+            table[i] = crc;
+        }
+        return table;
+    };
+
+    static constexpr auto crc_table = generate_table();
+
+    uint32_t crc = 0xFFFFFFFF;
+    const uint8_t* ptr = static_cast<const uint8_t*>(data);
+
+    for (size_t i = 0; i < size; ++i)
+        crc = crc_table[(crc ^ ptr[i]) & 0xFF] ^ (crc >> 8);
+
+    // Final XOR to get the actual CRC value
+    return crc ^ 0xFFFFFFFF;
+}
+
+} // namespace utils

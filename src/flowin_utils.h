@@ -3,7 +3,7 @@
 namespace utils
 {
 
-template <typename F, typename = std::enable_if_t<std::is_function<typename std::remove_pointer<F>::type>::value>>
+template <typename F, std::enable_if_t<std::is_function_v<std::remove_pointer_t<F>>, int> = 0>
 bool get_proc_address(HMODULE h, const char* funcName, F& f)
 {
     if (auto ptr = ::GetProcAddress(h, funcName))
@@ -22,4 +22,6 @@ bool is_maximized(HWND wnd);
 
 int32_t get_system_metrics(int32_t index, uint32_t dpi);
 
-} // namespace flowin_utils
+uint32_t calculate_crc32(const void* data, size_t size);
+
+} // namespace utils

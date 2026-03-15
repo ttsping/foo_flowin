@@ -39,6 +39,8 @@ enum class menu_commands
     identify,
     show_info,
     hide_when_hover,
+    export_config,
+    import_config,
 };
 
 } // namespace flowin
