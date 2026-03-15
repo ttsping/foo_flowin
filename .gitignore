@@ -3,7 +3,10 @@
 [Bb]in/
 [Tt]emp/
 .vs/
+.q*/
 ipch/
+devdocs/
+*.fb2k-component
 *tlog/
 *_i.c
 *_p.c
