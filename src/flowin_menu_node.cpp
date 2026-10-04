@@ -101,7 +101,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::bring_to_top, "Bring to top", flowin_menu_show_on_main_menu))
+        if (auto node = group->new_node(menu_commands::bring_to_top, "Bring to front", flowin_menu_show_on_main_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -114,7 +114,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::no_frame, "No window frame", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::no_frame, "Frameless window", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config)
             {
@@ -136,7 +136,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::no_frame_silent, "No window frame (slient)",
+        if (auto node = group->new_node(menu_commands::no_frame_silent, "Frameless window (no dialog)",
                                         flowin_menu_show_on_main_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
@@ -151,38 +151,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
-        {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
-
-            node->get_flags = [](const cfg_t& config)
-            {
-                uint32_t flags = 0;
-                flags_require_config();
-                flags_check(config && config->enable_snap);
-                flags_disable(!is_flowin_alive(config));
-                flags_default_hidden(); // Compatible with legacy menu shortcuts
-                return flags;
-            };
-        }
-
-        if (auto node =
-                group->new_node(menu_commands::snap_auto_hide, "Auto hide when snapped", flowin_menu_show_on_all))
-        {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
-
-            node->get_flags = [](const cfg_t& config)
-            {
-                uint32_t flags = 0;
-                flags_require_config();
-                flags_check(config && config->enable_autohide_when_snapped);
-                flags_disable(!config || !config->enable_snap || !is_flowin_alive(config));
-                flags_default_hidden(); // Compatible with legacy menu shortcuts
-                return flags;
-            };
-        }
-
-        // new snap group
+        // snap group
         if (auto snap_group_node = group->new_node(menu_commands::invalid, "", flowin_menu_show_on_all))
         {
             auto snap_group = flowin_menu_group::new_group(flowin_menu_group_submenu, "Snap");
@@ -197,13 +166,13 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_check(config && config->enable_snap);
+                    flags_check(config && config->snap_to_edge);
                     flags_disable(!is_flowin_alive(config));
                     return flags;
                 };
             }
 
-            if (auto node = snap_group->new_node(menu_commands::snap_auto_hide, "Auto hide when snapped",
+            if (auto node = snap_group->new_node(menu_commands::auto_hide_when_snapped, "Auto-hide when snapped",
                                                  flowin_menu_show_on_all))
             {
                 node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
@@ -212,8 +181,8 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_check(config && config->enable_autohide_when_snapped);
-                    flags_disable(!config || !config->enable_snap || !is_flowin_alive(config));
+                    flags_check(config && config->auto_hide_when_snapped);
+                    flags_disable(!config || !config->snap_to_edge || !is_flowin_alive(config));
                     return flags;
                 };
             }
@@ -226,7 +195,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
+                    flags_disable(!is_flowin_alive(config) || config->auto_hide_when_snapped);
                     // flags_default_hidden();
                     return flags;
                 };
@@ -240,7 +209,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_disable(!is_flowin_alive(config) || config->enable_autohide_when_snapped);
+                    flags_disable(!is_flowin_alive(config) || config->auto_hide_when_snapped);
                     // flags_default_hidden();
                     return flags;
                 };
@@ -274,7 +243,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::show_on_taskbar, "Show on taskbar", flowin_menu_show_on_system_menu))
+        if (auto node = group->new_node(menu_commands::show_on_taskbar, "Show in taskbar", flowin_menu_show_on_system_menu))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -293,7 +262,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
         }
 
-        if (auto node = group->new_node(menu_commands::hide_when_hover, "Hide when hover", flowin_menu_show_on_all))
+        if (auto node = group->new_node(menu_commands::auto_hide_when_hovered, "Auto-hide when hovered", flowin_menu_show_on_all))
         {
             node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
 
@@ -301,7 +270,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_check(config && config->hide_when_hover);
+                flags_check(config && config->auto_hide_when_hovered);
                 return flags;
             };
         }
@@ -318,7 +287,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 if (config != nullptr)
                 {
                     pfc::string8 msg;
-                    msg << "guid: " << pfc::print_guid(config->guid);
+                    msg << "GUID: " << pfc::print_guid(config->guid);
                     popup_message_v2::g_show(core_api::get_main_window(), msg);
                 }
             };
@@ -374,7 +343,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::show_and_hide_main_window, "Show flowin and hide main window",
+        if (auto node = group->new_node(menu_commands::show_and_hide_main_window, "Show flowin, hide main window",
                                         flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
@@ -399,7 +368,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
         }
 
         if (auto node = group->new_node(menu_commands::close_and_activate_main_window,
-                                        "Close flowin and activate main window", flowin_menu_show_on_flowin))
+                                        "Close flowin, activate main window", flowin_menu_show_on_flowin))
         {
             node->action = [](cfg_t& config)
             {

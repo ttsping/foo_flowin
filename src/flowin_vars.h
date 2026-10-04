@@ -19,7 +19,7 @@ enum class menu_commands
     close_all,
     always_on_top,
     snap_to_edge,
-    snap_auto_hide,
+    auto_hide_when_snapped,
     snap_hide,
     snap_show,
     edit_mode,
@@ -38,7 +38,7 @@ enum class menu_commands
     close_and_activate_main_window,
     identify,
     show_info,
-    hide_when_hover,
+    auto_hide_when_hovered,
     export_config,
     import_config,
 };

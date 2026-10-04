@@ -29,8 +29,8 @@ void cfg_flowin_host::reset()
     show_minimize_box = false;
     snap_to_main_window = false;
     move_when_press_hot_key = true;
-    enable_snap = false;
-    enable_autohide_when_snapped = true;
+    snap_to_edge = false;
+    auto_hide_when_snapped = true;
     window_title = "Flowin";
     guid = pfc::guid_null;
     subelement_guid = pfc::guid_null;
@@ -38,7 +38,7 @@ void cfg_flowin_host::reset()
     enable_transparency_active = false;
     transparency = 0;
     transparency_active = 0;
-    hide_when_hover = false;
+    auto_hide_when_hovered = false;
     ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
     cfg_no_frame.shadowed = true;
     cfg_no_frame.resizable = true;
@@ -63,7 +63,7 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
         switch (version)
         {
         case t_version_012:
-            reader->read_object_t(hide_when_hover, abort);
+            reader->read_object_t(auto_hide_when_hovered, abort);
             reader->read_object(bool_reserved, sizeof(bool_reserved), abort);
             [[fallthrough]];
         case t_version_011:
@@ -85,8 +85,8 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
             reader->read_object_t(show_maximize_box, abort);
             reader->read_object_t(snap_to_main_window, abort);
             reader->read_object_t(move_when_press_hot_key, abort);
-            reader->read_object_t(enable_snap, abort);
-            reader->read_object_t(enable_autohide_when_snapped, abort);
+            reader->read_object_t(snap_to_edge, abort);
+            reader->read_object_t(auto_hide_when_snapped, abort);
             reader->read_object(&window_rect, sizeof(window_rect), abort);
             reader->read_lendian_t(move_modifiers, abort);
             reader->read_string_nullterm(window_title, abort);
@@ -113,7 +113,7 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
         uint32_t ver = t_version_current;
         writer->write_lendian_t(ver, abort);
         // version 012
-        writer->write_object_t(hide_when_hover, abort);
+        writer->write_object_t(auto_hide_when_hovered, abort);
         writer->write_object(bool_reserved, sizeof(bool_reserved), abort);
         // version 011
         writer->write_object_t(enable_transparency_active, abort);
@@ -133,8 +133,8 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
         writer->write_object_t(show_maximize_box, abort);
         writer->write_object_t(snap_to_main_window, abort);
         writer->write_object_t(move_when_press_hot_key, abort);
-        writer->write_object_t(enable_snap, abort);
-        writer->write_object_t(enable_autohide_when_snapped, abort);
+        writer->write_object_t(snap_to_edge, abort);
+        writer->write_object_t(auto_hide_when_snapped, abort);
         writer->write_object(&window_rect, sizeof(window_rect), abort);
         writer->write_lendian_t(move_modifiers, abort);
         writer->write_string_nullterm(window_title, abort);

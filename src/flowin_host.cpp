@@ -218,8 +218,7 @@ public:
         {
         case WM_MOUSEMOVE:
         case WM_NCMOUSEMOVE:
-            if (host_config_->enable_snap || host_config_->enable_transparency_active ||
-                host_config_->hide_when_hover)
+            if (host_config_->snap_to_edge || host_config_->enable_transparency_active || host_config_->auto_hide_when_hovered)
                 forward_message = true;
 
             if (is_perform_drag_)
@@ -516,7 +515,7 @@ private:
 
     void on_hover_mouse_enter()
     {
-        if (!host_config_->hide_when_hover)
+        if (!host_config_->auto_hide_when_hovered)
             return;
 
         start_hover_hide_animation(true);
@@ -524,7 +523,7 @@ private:
 
     void on_hover_mouse_leave()
     {
-        if (!host_config_->hide_when_hover)
+        if (!host_config_->auto_hide_when_hovered)
             return;
 
         start_hover_hide_animation(false);
@@ -546,12 +545,12 @@ public:
 
     bool snap_window_auto_hide_enabled()
     {
-        return host_config_ && host_config_->enable_autohide_when_snapped;
+        return host_config_ && host_config_->auto_hide_when_snapped;
     }
 
     bool snap_window_need_mouse_tracking()
     {
-        return host_config_ && host_config_->hide_when_hover;
+        return host_config_ && host_config_->auto_hide_when_hovered;
     }
 
     void set_always_on_top(bool on_top)
@@ -643,11 +642,29 @@ public:
             }
         }
 
-        for (auto& node : menu_nodes_)
+        insert_context_menu_nodes(menu, menu_nodes_, shift_pressed);
+
+        if (sys_menu)
+            insert_menu(menu, menu_commands::invalid, nullptr);
+    }
+
+    void insert_context_menu_nodes(HMENU menu, const flowin_menu_node_list& nodes, bool shift_pressed)
+    {
+        for (auto& node : nodes)
         {
+            if (!(node->show_flags & flowin_menu_show_on_system_menu))
+                continue;
+
             // Skip shift-only menu items if shift is not pressed
             if ((node->show_flags & flowin_menu_show_shift_only) && !shift_pressed)
                 continue;
+
+            // A node with a child group is a submenu
+            if (node->child_group != nullptr)
+            {
+                insert_context_submenu(menu, node, shift_pressed);
+                continue;
+            }
 
             pfc::stringcvt::string_wide_from_utf8 caption(node->text.c_str());
             const uint32_t flags = node->get_flags(host_config_);
@@ -655,9 +672,32 @@ public:
             const bool checked = flags & mainmenu_commands::flag_checked;
             insert_menu(menu, node->id, caption, enabled, checked);
         }
+    }
 
-        if (sys_menu)
-            insert_menu(menu, menu_commands::invalid, nullptr);
+    void insert_context_submenu(HMENU menu, const flowin_menu_node::sp_t& node, bool shift_pressed)
+    {
+        HMENU sub_menu = CreatePopupMenu();
+        if (sub_menu == nullptr)
+            return;
+
+        insert_context_menu_nodes(sub_menu, node->child_group->nodes, shift_pressed);
+
+        // An empty submenu would only be a dead end, keep it out of the menu
+        if (GetMenuItemCount(sub_menu) == 0)
+        {
+            DestroyMenu(sub_menu);
+            return;
+        }
+
+        pfc::stringcvt::string_wide_from_utf8 caption(node->child_group->text.c_str());
+        MENUITEMINFOW mii = {0};
+        mii.cbSize = sizeof(mii);
+        mii.fMask = MIIM_DATA | MIIM_STRING | MIIM_SUBMENU | MIIM_STATE;
+        mii.dwItemData = (ULONG_PTR)this;
+        mii.dwTypeData = const_cast<LPWSTR>(static_cast<LPCWSTR>(caption));
+        mii.fState = MFS_ENABLED;
+        mii.hSubMenu = sub_menu;
+        InsertMenuItemW(menu, SC_CLOSE, FALSE, &mii);
     }
 
     void execute_context_menu(menu_commands cmd, int param = 0)
@@ -705,15 +745,15 @@ public:
             break;
 
         case menu_commands::snap_to_edge:
-            host_config_->enable_snap = !host_config_->enable_snap;
-            enable_snap_ = host_config_->enable_snap;
+            host_config_->snap_to_edge = !host_config_->snap_to_edge;
+            enable_snap_ = host_config_->snap_to_edge;
             if (!enable_snap_)
                 RestoreFromSnapHidden();
             break;
 
-        case menu_commands::snap_auto_hide:
-            host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
-            if (!host_config_->enable_autohide_when_snapped)
+        case menu_commands::auto_hide_when_snapped:
+            host_config_->auto_hide_when_snapped = !host_config_->auto_hide_when_snapped;
+            if (!host_config_->auto_hide_when_snapped)
                 RestoreFromSnapHidden();
             break;
 
@@ -771,29 +811,29 @@ public:
         }
 
         case menu_commands::snap_hide:
-            if (host_config_->enable_autohide_when_snapped)
+            if (host_config_->auto_hide_when_snapped)
                 break;
             SimulateSnapToHide();
             break;
 
         case menu_commands::snap_show:
-            if (host_config_->enable_autohide_when_snapped)
+            if (host_config_->auto_hide_when_snapped)
                 break;
             SimulateSnapToShow();
             break;
 
-        case menu_commands::hide_when_hover:
-            host_config_->hide_when_hover = !host_config_->hide_when_hover;
-            if (host_config_->hide_when_hover)
+        case menu_commands::auto_hide_when_hovered:
+            host_config_->auto_hide_when_hovered = !host_config_->auto_hide_when_hovered;
+            if (host_config_->auto_hide_when_hovered)
             {
                 pfc::string8 window_title;
                 uGetWindowText(*this, window_title);
                 pfc::string_formatter msg;
-                msg << "Hover hide is now enabled for \"" << window_title << "\".\n\n"
+                msg << "\"Auto-hide when hovered\" is now enabled for \"" << window_title << "\".\n\n"
                     << "Note: When the mouse enters this window, it will become invisible.\n"
                     << "You won't be able to interact with the panel until the mouse leaves.\n\n"
-                    << "To disable: Main Menu -> View -> Flowin -> " << window_title << " -> Hide when hover";
-                uMessageBox(*this, msg, "Hide when hover", MB_OK | MB_ICONINFORMATION);
+                    << "To disable: Main Menu -> View -> Flowin -> " << window_title << " -> Auto-hide when hovered";
+                uMessageBox(*this, msg, "Auto-hide when hovered", MB_OK | MB_ICONINFORMATION);
             }
             else
             {
@@ -936,7 +976,7 @@ private:
         configure_window_style();
 
         // snap config
-        enable_snap_ = host_config_->enable_snap;
+        enable_snap_ = host_config_->snap_to_edge;
 
         if (!host_config_->show_in_taskbar)
             show_or_hide_on_taskbar(false);
@@ -947,7 +987,7 @@ private:
         if (!host_config_->always_on_top)
             bring_window_to_top();
 
-        if (host_config_->hide_when_hover)
+        if (host_config_->auto_hide_when_hovered)
         {
             POINT pt;
             GetCursorPos(&pt);

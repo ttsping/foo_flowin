@@ -98,7 +98,7 @@ STDMETHODIMP FlowinHostImpl::get_SnapToEdge(VARIANT_BOOL* pp)
     RETURN_HR_IF(E_POINTER, pp == nullptr);
     RETURN_HR_IF(E_FAIL, config_ == nullptr);
 
-    *pp = TO_VARIANT_BOOL(config_->enable_snap);
+    *pp = TO_VARIANT_BOOL(config_->snap_to_edge);
     return S_OK;
 }
 
@@ -107,7 +107,7 @@ STDMETHODIMP FlowinHostImpl::get_AutoHideWhenSnap(VARIANT_BOOL* pp)
     RETURN_HR_IF(E_POINTER, pp == nullptr);
     RETURN_HR_IF(E_FAIL, config_ == nullptr);
 
-    *pp = TO_VARIANT_BOOL(config_->enable_autohide_when_snapped);
+    *pp = TO_VARIANT_BOOL(config_->auto_hide_when_snapped);
     return S_OK;
 }
 
@@ -252,7 +252,7 @@ STDMETHODIMP FlowinHostImpl::put_NoFrame(VARIANT_BOOL p)
 STDMETHODIMP FlowinHostImpl::put_SnapToEdge(VARIANT_BOOL p)
 {
     RETURN_HR_IF(E_FAIL, config_ == nullptr);
-    if (TO_VARIANT_BOOL(config_->enable_snap) == p)
+    if (TO_VARIANT_BOOL(config_->snap_to_edge) == p)
         return S_OK;
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
@@ -261,7 +261,7 @@ STDMETHODIMP FlowinHostImpl::put_SnapToEdge(VARIANT_BOOL p)
     }
     else
     {
-        config_->enable_snap = p ? true : false;
+        config_->snap_to_edge = p ? true : false;
     }
 
     return S_OK;
@@ -270,16 +270,16 @@ STDMETHODIMP FlowinHostImpl::put_SnapToEdge(VARIANT_BOOL p)
 STDMETHODIMP FlowinHostImpl::put_AutoHideWhenSnap(VARIANT_BOOL p)
 {
     RETURN_HR_IF(E_FAIL, config_ == nullptr);
-    if (TO_VARIANT_BOOL(config_->enable_autohide_when_snapped) == p)
+    if (TO_VARIANT_BOOL(config_->auto_hide_when_snapped) == p)
         return S_OK;
 
     if (flowin_core::get()->is_flowin_alive(host_guid_))
     {
-        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)flowin::menu_commands::snap_auto_hide);
+        flowin_core::get()->post_message(host_guid_, UWM_FLOWIN_COMMAND, (WPARAM)flowin::menu_commands::auto_hide_when_snapped);
     }
     else
     {
-        config_->enable_autohide_when_snapped = p ? true : false;
+        config_->auto_hide_when_snapped = p ? true : false;
     }
 
     return S_OK;

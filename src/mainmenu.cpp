@@ -7,12 +7,16 @@
 namespace
 {
 using namespace flowin;
+
+constexpr uint32_t kMenuPathStride = 32;
+
 class flowin_mainmenu_node_command : public mainmenu_node_command
 {
 public:
     explicit flowin_mainmenu_node_command(const flowin_menu_node::sp_t& node,
-                                          const cfg_flowin_host::sp_t& config = nullptr)
-        : node_(node), config_(config)
+                                          const cfg_flowin_host::sp_t& config = nullptr,
+                                          uint32_t node_path = 0)
+        : node_(node), config_(config), node_path_(node_path)
     {
         has_dynamic_config_ = (config_ == nullptr && is_config_reqired());
     }
@@ -40,17 +44,21 @@ public:
         t_uint32 flags;
         pfc::string8 name;
         get_display(name, flags);
-        if (has_dynamic_config_ || !is_config_reqired())
-        {
-            name += pfc::print_guid(guid_dummy);
-        }
-        else
+
+        GUID config_guid = guid_dummy;
+        if (!has_dynamic_config_ && is_config_reqired())
         {
             load_config();
-            name += pfc::print_guid(config_ ? config_->guid : guid_dummy);
+            if (config_ != nullptr)
+                config_guid = config_->guid;
         }
 
-        return hasher_md5::get()->process_single_guid(name.get_ptr(), name.get_length());
+        stream_formatter_hasher_md5<> hasher;
+        hasher << static_cast<t_uint32>(node_path_);
+        hasher << static_cast<t_uint32>(node_->id);
+        hasher << config_guid;
+
+        return hasher.resultGuid();
     };
 
     void execute(service_ptr_t<service_base> callback) override
@@ -100,6 +108,7 @@ private:
 private:
     cfg_flowin_host::sp_t config_;
     flowin_menu_node::sp_t node_;
+    uint32_t node_path_ = 0;
     bool has_dynamic_config_ = false;
 };
 
@@ -125,16 +134,17 @@ public:
         }
     }
 
-    explicit flowin_mainmenu_node_group(flowin_menu_group::sp_t& group) : menu_groups_{group}
+    explicit flowin_mainmenu_node_group(flowin_menu_group::sp_t& group, uint32_t node_path = 0) : menu_groups_{group}
     {
+        const uint32_t child_path = node_path * kMenuPathStride + static_cast<uint32_t>(group->group + 1);
         for (auto& node : group->nodes)
         {
             if (node->child_group != nullptr)
-                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(node->child_group));
+                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(node->child_group, child_path));
             else if (node->id == menu_commands::invalid)
                 menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
             else
-                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));
+                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config, node_path));
         }
     }
 

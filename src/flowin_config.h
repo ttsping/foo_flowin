@@ -32,8 +32,8 @@ public:
     bool show_maximize_box;
     bool snap_to_main_window;
     bool move_when_press_hot_key;
-    bool enable_snap;
-    bool enable_autohide_when_snapped;
+    bool snap_to_edge;
+    bool auto_hide_when_snapped;
     uint32_t move_modifiers;
     RECT window_rect;
     pfc::string8 window_title;
@@ -55,7 +55,7 @@ public:
     static_assert(sizeof(cfg_no_frame) == sizeof(uint8_t) * 4, "unexpected no-frame configuration size");
 
     bool show_in_taskbar;
-    bool hide_when_hover;
+    bool auto_hide_when_hovered;
 
     bool bool_reserved[32];
 
