@@ -6,21 +6,21 @@
 namespace
 {
 
-typedef CWinTraits<WS_POPUP, 0> CDummpyFlowinTraits;
+typedef CWinTraits<WS_POPUP, 0> CDummyFlowinTraits;
 
-class flowin_dummy_ui_element : public ui_element_instance,
-                                public CWindowImpl<flowin_dummy_ui_element, CWindow, CDummpyFlowinTraits>
+class FlowinDummyUiElement : public ui_element_instance,
+                                public CWindowImpl<FlowinDummyUiElement, CWindow, CDummyFlowinTraits>
 {
 public:
     DECLARE_WND_CLASS(TEXT("{A2143483-196F-45A4-81F3-621ABF577E69}"));
 
-    BEGIN_MSG_MAP_EX(flowin_dummy_ui_element)
+    BEGIN_MSG_MAP_EX(FlowinDummyUiElement)
     END_MSG_MAP()
 
-    flowin_dummy_ui_element(ui_element_config::ptr, ui_element_instance_callback_ptr p_callback) : callback_(p_callback)
+    FlowinDummyUiElement(ui_element_config::ptr, ui_element_instance_callback_ptr p_callback) : callback(p_callback)
     {
         // simply use a placeholder UI element to capture the callback from foo_ui_std.
-        flowin_core::get()->set_instance_callback(callback_);
+        FlowinCore::Get()->SetInstanceCallback(callback);
     }
 
     HWND get_wnd() override
@@ -28,14 +28,14 @@ public:
         return nullptr;
     }
 
-    void set_configuration(ui_element_config::ptr config) override
+    void set_configuration(ui_element_config::ptr p_config) override
     {
-        config_ = config;
+        config = p_config;
     }
 
     ui_element_config::ptr get_configuration() override
     {
-        return config_;
+        return config;
     }
 
     static GUID g_get_guid()
@@ -65,7 +65,7 @@ public:
 
     void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size) override
     {
-        flowin_core::get()->notify(p_what, p_param1, p_param2, p_param2size);
+        FlowinCore::Get()->Notify(p_what, p_param1, p_param2, p_param2size);
     }
 
     void initialize_window(HWND parent)
@@ -75,11 +75,11 @@ public:
     }
 
 private:
-    ui_element_config::ptr config_;
-    const ui_element_instance_callback_ptr callback_;
+    ui_element_config::ptr config;
+    const ui_element_instance_callback_ptr callback;
 };
 
-class flowin_dummy_ui_element_impl : public ui_element_impl<flowin_dummy_ui_element>
+class FlowinDummyUiElementImpl : public ui_element_impl<FlowinDummyUiElement>
 {
 public:
     bool is_user_addable()
@@ -88,6 +88,6 @@ public:
     }
 };
 
-static service_factory_single_t<flowin_dummy_ui_element_impl> g_flowin_dummy_ui_element_impl_factory;
+static service_factory_single_t<FlowinDummyUiElementImpl> g_flowin_dummy_ui_element_impl_factory;
 
 } // namespace

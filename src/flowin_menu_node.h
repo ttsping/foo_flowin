@@ -1,87 +1,88 @@
 ﻿#pragma once
 #include <vector>
+#include <memory>
 #include "flowin_vars.h"
 
-class cfg_flowin_host;
+class CfgFlowinHost;
 
 enum
 {
-    flowin_menu_group_root = 0,
-    flowin_menu_group_active,
-    flowin_menu_group_live,
-    flowin_menu_group_submenu,
+    FlowinMenuGroupRoot = 0,
+    FlowinMenuGroupActive,
+    FlowinMenuGroupLive,
+    FlowinMenuGroupSubmenu,
 };
 
 enum : uint32_t
 {
-    flowin_menu_show_default = 0,
-    flowin_menu_show_on_root = 0,
-    flowin_menu_show_on_active = 1 << 1,
-    flowin_menu_show_on_flowin = 1 << 2,
-    flowin_menu_show_on_system_menu = 1 << 3,
-    flowin_menu_show_shift_only = 1 << 4,
-    flowin_menu_show_on_main_menu = flowin_menu_show_on_active | flowin_menu_show_on_flowin,
-    flowin_menu_show_on_all = flowin_menu_show_on_main_menu | flowin_menu_show_on_system_menu,
+    FlowinMenuShowDefault = 0,
+    FlowinMenuShowOnRoot = 0,
+    FlowinMenuShowOnActive = 1 << 1,
+    FlowinMenuShowOnFlowin = 1 << 2,
+    FlowinMenuShowOnSystemMenu = 1 << 3,
+    FlowinMenuShowShiftOnly = 1 << 4,
+    FlowinMenuShowOnMainMenu = FlowinMenuShowOnActive | FlowinMenuShowOnFlowin,
+    FlowinMenuShowOnAll = FlowinMenuShowOnMainMenu | FlowinMenuShowOnSystemMenu,
 };
 
-static uint32_t flowin_menu_node_default_get_flags(const std::shared_ptr<cfg_flowin_host>&)
+static uint32_t FlowinMenuNodeDefaultGetFlags(const std::shared_ptr<CfgFlowinHost>&)
 {
     return 0;
 }
 
-static void flowin_menu_node_default_action(std::shared_ptr<cfg_flowin_host>&)
+static void FlowinMenuNodeDefaultAction(std::shared_ptr<CfgFlowinHost>&)
 {
 }
 
-struct flowin_menu_group;
+struct FlowinMenuGroup;
 
-struct flowin_menu_node
+struct FlowinMenuNode
 {
-    using sp_t = std::shared_ptr<flowin_menu_node>;
+    using Ptr = std::shared_ptr<FlowinMenuNode>;
 
-    flowin::menu_commands id = flowin::menu_commands::invalid;
+    Flowin::MenuCommands id = Flowin::MenuCommands::Invalid;
     uint32_t show_flags = 0;
     std::string text;
-    std::function<void(std::shared_ptr<cfg_flowin_host>&)> action = flowin_menu_node_default_action;
-    std::function<uint32_t(const std::shared_ptr<cfg_flowin_host>&)> get_flags = flowin_menu_node_default_get_flags;
-    std::shared_ptr<flowin_menu_group> child_group;
+    std::function<void(std::shared_ptr<CfgFlowinHost>&)> action = FlowinMenuNodeDefaultAction;
+    std::function<uint32_t(const std::shared_ptr<CfgFlowinHost>&)> get_flags = FlowinMenuNodeDefaultGetFlags;
+    std::shared_ptr<FlowinMenuGroup> child_group;
 
-    explicit flowin_menu_node(flowin::menu_commands node_id, std::string_view caption, uint32_t flags)
+    explicit FlowinMenuNode(Flowin::MenuCommands node_id, std::string_view caption, uint32_t flags)
         : id(node_id), text(caption), show_flags(flags)
     {
     }
 };
-using flowin_menu_node_list = std::vector<flowin_menu_node::sp_t>;
+using FlowinMenuNodeList = std::vector<FlowinMenuNode::Ptr>;
 
-struct flowin_menu_group
+struct FlowinMenuGroup
 {
-    using sp_t = std::shared_ptr<flowin_menu_group>;
+    using Ptr = std::shared_ptr<FlowinMenuGroup>;
     int32_t group = -1;
     std::string text;
-    std::shared_ptr<cfg_flowin_host> config;
-    flowin_menu_node_list nodes;
+    std::shared_ptr<CfgFlowinHost> config;
+    FlowinMenuNodeList nodes;
 
-    explicit flowin_menu_group(int32_t menu_group) : group(menu_group)
+    explicit FlowinMenuGroup(int32_t menu_group) : group(menu_group)
     {
     }
 
-    explicit flowin_menu_group(int32_t menu_group, const std::string& caption) : group(menu_group), text(caption)
+    explicit FlowinMenuGroup(int32_t menu_group, const std::string& caption) : group(menu_group), text(caption)
     {
     }
 
-    static inline flowin_menu_group::sp_t new_group(uint32_t menu_group, const std::string& caption = {})
+    static inline FlowinMenuGroup::Ptr NewGroup(uint32_t menu_group, const std::string& caption = {})
     {
-        return std::make_shared<flowin_menu_group>(menu_group, caption);
+        return std::make_shared<FlowinMenuGroup>(menu_group, caption);
     }
 
-    inline flowin_menu_node::sp_t new_node(flowin::menu_commands id, std::string_view text,
-                                           uint32_t flags = flowin_menu_show_default)
+    inline FlowinMenuNode::Ptr NewNode(Flowin::MenuCommands id, std::string_view text,
+                                           uint32_t flags = FlowinMenuShowDefault)
     {
-        nodes.push_back(std::make_shared<flowin_menu_node>(id, text, flags));
+        nodes.push_back(std::make_shared<FlowinMenuNode>(id, text, flags));
         return nodes.back();
     }
 };
-using flowin_menu_group_list = std::vector<flowin_menu_group::sp_t>;
+using FlowinMenuGroupList = std::vector<FlowinMenuGroup::Ptr>;
 
-flowin_menu_group::sp_t build_flowin_menu_nodes();
-flowin_menu_group_list build_flowin_menu_groups();
+FlowinMenuGroup::Ptr BuildFlowinMenuNodes();
+FlowinMenuGroupList BuildFlowinMenuGroups();

@@ -13,7 +13,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
     HRESULT hr = E_FAIL;
     if (rclsid == __uuidof(FlowinControlImpl))
     {
-        FlowinControlImplFactory* factory = new com_object_impl_t<FlowinControlImplFactory>();
+        FlowinControlImplFactory* factory = new ComObjectImpl<FlowinControlImplFactory>();
         if (factory != nullptr)
         {
             hr = factory->QueryInterface(riid, ppv);

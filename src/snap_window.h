@@ -23,20 +23,20 @@ private:
 
     enum class SnapSimulateState
     {
-        SNAP_SIM_NONE = -1,
-        SNAP_SIM_HIDE = 0,
-        SNAP_SIM_SHOW = 1,
+        SnapSimNone = -1,
+        SnapSimHide = 0,
+        SnapSimShow = 1,
     };
 
 protected:
-    enum SNAP_STATE
+    enum SnapState
     {
-        SNAP_INVALID = -1,
-        SNAP_NONE = 0,
-        SNAP_LEFT,
-        SNAP_TOP,
-        SNAP_RIGHT,
-        SNAP_BOTTOM,
+        SnapInvalid = -1,
+        SnapNone = 0,
+        SnapLeft,
+        SnapTop,
+        SnapRight,
+        SnapBottom,
     };
 
 public:
@@ -92,17 +92,17 @@ public:
 protected:
     bool AutoHideEnabled()
     {
-        return static_cast<T*>(this)->snap_window_auto_hide_enabled();
+        return static_cast<T*>(this)->SnapWindowAutoHideEnabled();
     }
 
     bool HostNeedsMouseTracking()
     {
-        return static_cast<T*>(this)->snap_window_need_mouse_tracking();
+        return static_cast<T*>(this)->SnapWindowNeedMouseTracking();
     }
 
     LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/)
     {
-        if (!enable_snap_)
+        if (!enable_snap)
             return FALSE;
         LPRECT prc = (LPRECT)lp;
         RECT rect_work = {0};
@@ -112,7 +112,7 @@ protected:
         POINT pt;
         if (GetCursorPos(&pt))
         {
-            OffsetRect(&rect, pt.x - (rect.left + snap_dx_), pt.y - (rect.top + snap_dy_));
+            OffsetRect(&rect, pt.x - (rect.left + snap_dx), pt.y - (rect.top + snap_dy));
         }
 
         // left && right
@@ -141,29 +141,29 @@ protected:
 
     LRESULT OnEnterSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        if (!enable_snap_)
+        if (!enable_snap)
             return 1;
-        snap_state_ = SNAP_NONE;
+        snap_state = SnapNone;
         RECT rect;
         POINT pt;
         if (::GetWindowRect(GetHWnd(), &rect) && GetCursorPos(&pt))
         {
-            snap_dx_ = pt.x - rect.left;
-            snap_dy_ = pt.y - rect.top;
+            snap_dx = pt.x - rect.left;
+            snap_dy = pt.y - rect.top;
         }
         return 0;
     }
 
     LRESULT OnExitSizeMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        snap_state_ = CheckSnapState();
+        snap_state = CheckSnapState();
         return 0;
     }
 
     LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        const bool is_snap = (snap_timer_ != NULL) || (snap_state_ != SNAP_NONE);
-        if ((AutoHideEnabled() || is_snap || HostNeedsMouseTracking()) && !mouse_check_timer_)
+        const bool is_snap = (snap_timer != NULL) || (snap_state != SnapNone);
+        if ((AutoHideEnabled() || is_snap || HostNeedsMouseTracking()) && !mouse_check_timer)
         {
             ::PostMessage(GetHWnd(), UWM_MOUSEENTER, 0, 0);
             StartMouseCheckTimer();
@@ -173,32 +173,32 @@ protected:
 
     LRESULT OnMouseEnter(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        mouse_in_window_ = TRUE;
+        mouse_in_window = TRUE;
         const auto state = CheckSnapState();
-        if (AutoHideEnabled() || (state == SNAP_NONE && state != snap_state_))
+        if (AutoHideEnabled() || (state == SnapNone && state != snap_state))
         {
-            if (snap_state_ == SNAP_INVALID)
+            if (snap_state == SnapInvalid)
             {
-                snap_state_ = state;
+                snap_state = state;
             }
-            else if (snap_state_ != SNAP_NONE)
+            else if (snap_state != SnapNone)
             {
-                if (state != snap_state_)
+                if (state != snap_state)
                     StartSnapAnimateTimer();
             }
         }
-        static_cast<T*>(this)->snap_window_on_hover_mouse_enter();
+        static_cast<T*>(this)->SnapWindowOnHoverMouseEnter();
         return 0;
     }
 
     LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
-        mouse_in_window_ = FALSE;
-        if ((snap_state_ != SNAP_NONE) && AutoHideEnabled())
+        mouse_in_window = FALSE;
+        if ((snap_state != SnapNone) && AutoHideEnabled())
         {
             StartSnapAnimateTimer();
         }
-        static_cast<T*>(this)->snap_window_on_hover_mouse_leave();
+        static_cast<T*>(this)->SnapWindowOnHoverMouseLeave();
         return 0;
     }
 
@@ -208,7 +208,7 @@ protected:
         switch (id)
         {
         case SNAP_TIMER_ID:
-            if (!AnimateSnappedWindow(mouse_in_window_ || (snap_sim_state_ == SnapSimulateState::SNAP_SIM_SHOW)))
+            if (!AnimateSnappedWindow(mouse_in_window || (snap_sim_state == SnapSimulateState::SnapSimShow)))
             {
                 KillSnapAnimateTimer();
             }
@@ -234,26 +234,26 @@ protected:
     }
 
 protected:
-    SNAP_STATE CheckSnapState()
+    SnapState CheckSnapState()
     {
         RECT rect;
         if (!::GetWindowRect(GetHWnd(), &rect))
-            return SNAP_NONE;
+            return SnapNone;
 
         RECT rect_work = {0};
         if (!GetWorkAreaRect(&rect_work))
-            return SNAP_NONE;
+            return SnapNone;
 
         if (rect.left == rect_work.left)
-            return SNAP_LEFT;
+            return SnapLeft;
         if (rect.top == rect_work.top)
-            return SNAP_TOP;
+            return SnapTop;
         if (rect.right == rect_work.right)
-            return SNAP_RIGHT;
+            return SnapRight;
         if (rect.bottom == rect_work.bottom)
-            return SNAP_BOTTOM;
+            return SnapBottom;
 
-        return SNAP_NONE;
+        return SnapNone;
     }
 
     BOOL GetSnapWindowRect(LPRECT prc)
@@ -265,24 +265,24 @@ protected:
             return TRUE; // use current rect
         int ww = prc->right - prc->left;
         int wh = prc->bottom - prc->top;
-        switch (snap_state_)
+        switch (snap_state)
         {
-        case SNAP_LEFT:
+        case SnapLeft:
             prc->left = rect_work.left;
             prc->right = prc->left + ww;
             break;
 
-        case SNAP_TOP:
+        case SnapTop:
             prc->top = rect_work.top;
             prc->bottom = prc->top + wh;
             break;
 
-        case SNAP_RIGHT:
+        case SnapRight:
             prc->right = rect_work.right;
             prc->left = prc->right - ww;
             break;
 
-        case SNAP_BOTTOM:
+        case SnapBottom:
             prc->bottom = rect_work.bottom;
             prc->top = prc->bottom - wh;
             break;
@@ -295,7 +295,7 @@ protected:
 
     VOID RestoreFromSnapHidden()
     {
-        if (snap_state_ != SNAP_NONE)
+        if (snap_state != SnapNone)
         {
             RECT rect = {0};
             if (GetSnapWindowRect(&rect))
@@ -308,19 +308,19 @@ protected:
 
     VOID SimulateSnapToHide()
     {
-        if (auto state = CheckSnapState(); state != SNAP_NONE)
+        if (auto state = CheckSnapState(); state != SnapNone)
         {
-            snap_state_ = state;
-            snap_sim_state_ = SnapSimulateState::SNAP_SIM_HIDE;
+            snap_state = state;
+            snap_sim_state = SnapSimulateState::SnapSimHide;
             StartSnapAnimateTimer();
         }
     }
 
     VOID SimulateSnapToShow()
     {
-        if (auto state = CheckSnapState(); (state == SNAP_NONE) && (state != snap_state_))
+        if (auto state = CheckSnapState(); (state == SnapNone) && (state != snap_state))
         {
-            snap_sim_state_ = SnapSimulateState::SNAP_SIM_SHOW;
+            snap_sim_state = SnapSimulateState::SnapSimShow;
             StartSnapAnimateTimer();
         }
     }
@@ -328,37 +328,37 @@ protected:
 private:
     inline VOID StartSnapAnimateTimer()
     {
-        if (snap_timer_ == NULL)
+        if (snap_timer == NULL)
         {
-            snap_timer_ = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, USER_TIMER_MINIMUM, NULL);
+            snap_timer = ::SetTimer(GetHWnd(), SNAP_TIMER_ID, USER_TIMER_MINIMUM, NULL);
         }
     }
 
     inline VOID KillSnapAnimateTimer()
     {
-        if (snap_timer_)
+        if (snap_timer)
         {
-            ::KillTimer(GetHWnd(), snap_timer_);
-            snap_timer_ = NULL;
+            ::KillTimer(GetHWnd(), snap_timer);
+            snap_timer = NULL;
         }
 
-        snap_sim_state_ = SnapSimulateState::SNAP_SIM_NONE;
+        snap_sim_state = SnapSimulateState::SnapSimNone;
     }
 
     inline VOID StartMouseCheckTimer()
     {
-        if (mouse_check_timer_ == NULL)
+        if (mouse_check_timer == NULL)
         {
-            mouse_check_timer_ = ::SetTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID, 100, NULL);
+            mouse_check_timer = ::SetTimer(GetHWnd(), MOUSE_CHECK_TIMER_ID, 100, NULL);
         }
     }
 
     inline VOID KillMouseCheckTimer()
     {
-        if (mouse_check_timer_)
+        if (mouse_check_timer)
         {
-            ::KillTimer(GetHWnd(), mouse_check_timer_);
-            mouse_check_timer_ = NULL;
+            ::KillTimer(GetHWnd(), mouse_check_timer);
+            mouse_check_timer = NULL;
         }
     }
 
@@ -366,16 +366,16 @@ private:
     {
         if (HDC dc = ::GetDC(NULL))
         {
-            dpi_ = GetDeviceCaps(dc, LOGPIXELSX);
-            snap_detect_val_ = MulDiv(16, dpi_, 96);
-            snap_move_delta_ = MulDiv(kSnapMoveDelta, dpi_, 96);
+            dpi = GetDeviceCaps(dc, LOGPIXELSX);
+            snap_detect_val = MulDiv(16, dpi, 96);
+            snap_move_delta = MulDiv(kSnapMoveDelta, dpi, 96);
             ::ReleaseDC(NULL, dc);
         }
     }
 
     inline BOOL DetectSnap(int x1, int x2)
     {
-        return std::abs(x1 - x2) < snap_detect_val_;
+        return std::abs(x1 - x2) < snap_detect_val;
     }
 
     BOOL GetWorkAreaRect(LPRECT prc)
@@ -405,10 +405,10 @@ private:
         if (!GetWorkAreaRect(&rect_work))
             return FALSE;
 
-        const int move_delta = snap_move_delta_;
+        const int move_delta = snap_move_delta;
         int dx = 0, dy = 0;
-        int& val = (snap_state_ == SNAP_LEFT || snap_state_ == SNAP_RIGHT) ? dx : dy;
-        val = (snap_state_ == SNAP_LEFT || snap_state_ == SNAP_TOP) ? -1 * move_delta : move_delta;
+        int& val = (snap_state == SnapLeft || snap_state == SnapRight) ? dx : dy;
+        val = (snap_state == SnapLeft || snap_state == SnapTop) ? -1 * move_delta : move_delta;
         OffsetRect(&rect, revert ? -1 * dx : dx, revert ? -1 * dy : dy);
 
         BOOL animate_continue = TRUE;
@@ -416,9 +416,9 @@ private:
         int ww = rect.right - rect.left;
         int wh = rect.bottom - rect.top;
 
-        switch (snap_state_)
+        switch (snap_state)
         {
-        case SNAP_LEFT:
+        case SnapLeft:
             if (revert)
             {
                 if (rect.left > rect_work.left)
@@ -439,7 +439,7 @@ private:
             }
             break;
 
-        case SNAP_TOP:
+        case SnapTop:
             if (revert)
             {
                 if (rect.top > rect_work.top)
@@ -460,7 +460,7 @@ private:
             }
             break;
 
-        case SNAP_RIGHT:
+        case SnapRight:
             if (revert)
             {
                 if (rect.right < rect_work.right)
@@ -481,7 +481,7 @@ private:
             }
             break;
 
-        case SNAP_BOTTOM:
+        case SnapBottom:
             if (revert)
             {
                 if (rect.bottom < rect_work.bottom)
@@ -512,16 +512,16 @@ private:
     }
 
 protected:
-    bool enable_snap_ = false;
-    int dpi_ = 96;
-    int snap_dx_ = 0, snap_dy_ = 0;
-    int snap_detect_val_ = 0;
-    SNAP_STATE snap_state_ = SNAP_INVALID;
-    UINT_PTR snap_timer_ = 0;
-    UINT_PTR mouse_check_timer_ = 0;
+    bool enable_snap = false;
+    int dpi = 96;
+    int snap_dx = 0, snap_dy = 0;
+    int snap_detect_val = 0;
+    SnapState snap_state = SnapInvalid;
+    UINT_PTR snap_timer = 0;
+    UINT_PTR mouse_check_timer = 0;
     int kSnapHideEdgeWidth = 8;
-    BOOL mouse_in_window_ = FALSE;
+    BOOL mouse_in_window = FALSE;
     const int kSnapMoveDelta = 45;
-    int snap_move_delta_ = kSnapMoveDelta;
-    SnapSimulateState snap_sim_state_ = SnapSimulateState::SNAP_SIM_HIDE;
+    int snap_move_delta = kSnapMoveDelta;
+    SnapSimulateState snap_sim_state = SnapSimulateState::SnapSimHide;
 };

@@ -3,56 +3,56 @@
 #include <map>
 #include "flowin_callback.h"
 
-class flowin_core : public cfg_flowin_callback
+class FlowinCore : public CfgFlowinCallback
 {
 public:
-    using sp_t = std::shared_ptr<flowin_core>;
+    using Ptr = std::shared_ptr<FlowinCore>;
 
-    static sp_t get();
+    static Ptr Get();
 
-    // cfg_flowin_callback
-    void on_cfg_pre_write() override;
+    // CfgFlowinCallback
+    void OnCfgPreWrite() override;
 
-    void initalize();
-    void finalize();
+    void Initialize();
+    void Finalize();
 
-    void show_startup_flowin();
+    void ShowStartupFlowin();
 
-    void register_flowin(HWND hwnd, const GUID& guid);
-    void unregister_flowin(HWND hwnd);
+    void RegisterFlowin(HWND hwnd, const GUID& guid);
+    void UnregisterFlowin(HWND hwnd);
 
-    bool is_flowin_alive(const GUID& host_guid);
+    bool IsFlowinAlive(const GUID& host_guid);
 
-    void set_latest_active_flowin(const GUID& host_guid);
-    GUID get_latest_active_flowin() const;
+    void SetLatestActiveFlowin(const GUID& host_guid);
+    GUID GetLatestActiveFlowin() const;
 
-    void set_instance_callback(ui_element_instance_callback_ptr callback)
+    void SetInstanceCallback(ui_element_instance_callback_ptr p_callback)
     {
-        callback_ = callback;
+        callback = p_callback;
     }
 
-    void notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size);
+    void Notify(const GUID& p_what, t_size p_param1, const void* p_param2, t_size p_param2size);
 
-    GUID get_flowin_by_child(HWND child);
-    GUID get_flowin_by_guid(const wchar_t* guid);
-    GUID get_flowin_by_name(const wchar_t* name);
+    GUID GetFlowinByChild(HWND child);
+    GUID GetFlowinByGuid(const wchar_t* guid);
+    GUID GetFlowinByName(const wchar_t* name);
 
-    ui_element_instance_ptr create_flowin(const GUID& inst_guid = pfc::guid_null);
-    void remove_flowin(const GUID& host_guid, bool delete_config = false);
+    ui_element_instance_ptr CreateFlowin(const GUID& inst_guid = pfc::guid_null);
+    void RemoveFlowin(const GUID& host_guid, bool delete_config = false);
 
-    HWND get_flowin_window(const GUID& host_guid);
-    ui_element_instance_ptr get_flowin_instance(const GUID& host_guid);
+    HWND GetFlowinWindow(const GUID& host_guid);
+    ui_element_instance_ptr GetFlowinInstance(const GUID& host_guid);
 
-    BOOL post_message(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
-    LRESULT send_message(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    BOOL PostFlowinMessage(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    LRESULT SendFlowinMessage(HWND wnd, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
 
-    BOOL post_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
-    LRESULT send_message(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    BOOL PostFlowinMessage(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
+    LRESULT SendFlowinMessage(const GUID& host_guid, UINT msg, WPARAM wp = 0, LPARAM lp = 0);
 
 private:
-    ui_element_instance_callback_ptr callback_;
-    service_list_t<ui_element_instance> flowin_hosts_;
-    ui_element_popup_host::ptr dummy_element_inst_;
-    GUID latest_active_flowin_guid_;
-    std::map<HWND, GUID> alive_flowins_;
+    ui_element_instance_callback_ptr callback;
+    service_list_t<ui_element_instance> flowin_hosts;
+    ui_element_popup_host::ptr dummy_element_inst;
+    GUID latest_active_flowin_guid;
+    std::map<HWND, GUID> alive_flowins;
 };

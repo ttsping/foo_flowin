@@ -1,8 +1,8 @@
 #pragma once
 #include "flowin_defines.h"
 
-class NOVTABLE cfg_flowin_callback
+class NOVTABLE CfgFlowinCallback
 {
 public:
-    virtual void on_cfg_pre_write() = 0;
+    virtual void OnCfgPreWrite() = 0;
 };

@@ -6,7 +6,7 @@
 
 #pragma comment(lib, "dwmapi.lib")
 
-namespace utils
+namespace Utils
 {
 
 int(WINAPI* pfnGetSystemMetricsForDpi)(int, UINT) = nullptr;
@@ -15,45 +15,45 @@ UINT(WINAPI* pfnGetDpiForWindow)(HWND) = nullptr;
 DPI_AWARENESS_CONTEXT(WINAPI* pfnGetThreadDpiAwarenessContext)() = nullptr;
 DPI_AWARENESS(WINAPI* pfnGetAwarenessFromDpiAwarenessContext)(DPI_AWARENESS_CONTEXT value) = nullptr;
 
-static std::once_flag staticLoadFlag;
+static std::once_flag static_load_flag;
 
-static void load_utils_procedures()
+static void LoadUtilsProcedures()
 {
     // clang-format off
-    std::call_once(staticLoadFlag, [&]()
+    std::call_once(static_load_flag, [&]()
     {
         if (HMODULE user32 = GetModuleHandleW(L"user32.dll"))
         {
-            std::ignore = get_proc_address(user32, "GetSystemMetricsForDpi", pfnGetSystemMetricsForDpi);
-            std::ignore = get_proc_address(user32, "GetDpiForSystem", pfnGetDpiForSystem);
-            std::ignore = get_proc_address(user32, "GetDpiForWindow", pfnGetDpiForWindow);
-            std::ignore = get_proc_address(user32, "GetThreadDpiAwarenessContext", pfnGetThreadDpiAwarenessContext);
-            std::ignore = get_proc_address(user32, "GetAwarenessFromDpiAwarenessContext", pfnGetAwarenessFromDpiAwarenessContext);
+            std::ignore = GetProcAddress(user32, "GetSystemMetricsForDpi", pfnGetSystemMetricsForDpi);
+            std::ignore = GetProcAddress(user32, "GetDpiForSystem", pfnGetDpiForSystem);
+            std::ignore = GetProcAddress(user32, "GetDpiForWindow", pfnGetDpiForWindow);
+            std::ignore = GetProcAddress(user32, "GetThreadDpiAwarenessContext", pfnGetThreadDpiAwarenessContext);
+            std::ignore = GetProcAddress(user32, "GetAwarenessFromDpiAwarenessContext", pfnGetAwarenessFromDpiAwarenessContext);
         }
     });
     // clang-format on
 }
 
-bool is_composition_enabled()
+bool IsCompositionEnabled()
 {
     BOOL composition_enabled = FALSE;
     return SUCCEEDED(::DwmIsCompositionEnabled(&composition_enabled)) && composition_enabled;
 }
 
-bool is_maximized(HWND wnd)
+bool IsMaximized(HWND wnd)
 {
     WINDOWPLACEMENT placement;
     return ::GetWindowPlacement(wnd, &placement) && placement.showCmd == SW_MAXIMIZE;
 }
 
-int32_t get_system_metrics(int32_t index, uint32_t dpi)
+int32_t GetSystemMetrics(int32_t index, uint32_t dpi)
 {
-    load_utils_procedures();
+    LoadUtilsProcedures();
 
     if (pfnGetSystemMetricsForDpi != nullptr)
         return pfnGetSystemMetricsForDpi(index, dpi);
 
-    const int32_t rc = GetSystemMetrics(index);
+    const int32_t rc = ::GetSystemMetrics(index);
     if (dpi == USER_DEFAULT_SCREEN_DPI)
         return rc;
 
@@ -70,7 +70,7 @@ int32_t get_system_metrics(int32_t index, uint32_t dpi)
     return rc;
 }
 
-uint32_t calculate_crc32(const void* data, size_t size)
+uint32_t CalculateCrc32(const void* data, size_t size)
 {
     auto generate_table = []() constexpr
     {
@@ -103,4 +103,4 @@ uint32_t calculate_crc32(const void* data, size_t size)
     return crc ^ 0xFFFFFFFF;
 }
 
-} // namespace utils
+} // namespace Utils

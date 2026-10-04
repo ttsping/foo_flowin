@@ -4,23 +4,23 @@
 #include "flowin_config.h"
 #include "flowin_vars.h"
 
-using namespace flowin;
-using cfg_t = cfg_flowin_host::sp_t;
+using namespace Flowin;
+using cfg_t = CfgFlowinHost::Ptr;
 
-inline bool is_flowin_alive(const cfg_t& config)
+inline bool IsFlowinAlive(const cfg_t& config)
 {
-    return config && flowin_core::get()->is_flowin_alive(config->guid);
+    return config && FlowinCore::Get()->IsFlowinAlive(config->guid);
 }
 
-inline void notify_flowin(const cfg_t& config, uint32_t msg, WPARAM wp = 0, LPARAM lp = 0)
+inline void NotifyFlowin(const cfg_t& config, uint32_t msg, WPARAM wp = 0, LPARAM lp = 0)
 {
     if (config != nullptr)
-        flowin_core::get()->post_message(config->guid, msg, wp, lp);
+        FlowinCore::Get()->PostFlowinMessage(config->guid, msg, wp, lp);
 }
 
-inline void notify_flowin_command(const cfg_t& config, menu_commands cmd, LPARAM lp = 0)
+inline void NotifyFlowinCommand(const cfg_t& config, MenuCommands cmd, LPARAM lp = 0)
 {
-    notify_flowin(config, UWM_FLOWIN_COMMAND, (WPARAM)cmd, lp);
+    NotifyFlowin(config, UWM_FLOWIN_COMMAND, (WPARAM)cmd, lp);
 }
 
 // clang-format off
@@ -30,25 +30,25 @@ inline void notify_flowin_command(const cfg_t& config, menu_commands cmd, LPARAM
 #define flags_default_hidden() { flags |= mainmenu_commands::flag_defaulthidden; }
 // clang-format on
 
-flowin_menu_group::sp_t build_flowin_menu_nodes()
+FlowinMenuGroup::Ptr BuildFlowinMenuNodes()
 {
-    static flowin_menu_group::sp_t shared_nodes;
+    static FlowinMenuGroup::Ptr shared_nodes;
     if (shared_nodes != nullptr)
         return shared_nodes;
 
-    if (auto group = flowin_menu_group::new_group(0 /*not used*/))
+    if (auto group = FlowinMenuGroup::NewGroup(0 /*not used*/))
     {
-        if (auto node = group->new_node(menu_commands::show, "Show", flowin_menu_show_on_flowin))
+        if (auto node = group->NewNode(MenuCommands::Show, "Show", FlowinMenuShowOnFlowin))
         {
             node->action = [](cfg_t& config)
             {
                 if (config != nullptr)
                 {
-                    auto core = flowin_core::get();
-                    if (core->is_flowin_alive(config->guid))
-                        core->post_message(config->guid, WM_CLOSE);
+                    auto core = FlowinCore::Get();
+                    if (core->IsFlowinAlive(config->guid))
+                        core->PostFlowinMessage(config->guid, WM_CLOSE);
                     else
-                        core->create_flowin(config->guid);
+                        core->CreateFlowin(config->guid);
                 }
             };
 
@@ -56,13 +56,13 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_check(is_flowin_alive(config));
+                flags_check(IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::show_on_startup, "Show on startup",
-                                        flowin_menu_show_on_flowin | flowin_menu_show_on_system_menu))
+        if (auto node = group->NewNode(MenuCommands::ShowOnStartup, "Show on startup",
+                                        FlowinMenuShowOnFlowin | FlowinMenuShowOnSystemMenu))
         {
             node->action = [](cfg_t& config)
             {
@@ -79,14 +79,14 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::always_on_top, "Always on top", flowin_menu_show_on_all))
+        if (auto node = group->NewNode(MenuCommands::AlwaysOnTop, "Always on top", FlowinMenuShowOnAll))
         {
             node->action = [id = node->id](cfg_t& config)
             {
                 if (config != nullptr)
                 {
-                    if (is_flowin_alive(config))
-                        notify_flowin_command(config, id);
+                    if (IsFlowinAlive(config))
+                        NotifyFlowinCommand(config, id);
                     else
                         config->always_on_top = !config->always_on_top;
                 }
@@ -101,27 +101,27 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::bring_to_top, "Bring to front", flowin_menu_show_on_main_menu))
+        if (auto node = group->NewNode(MenuCommands::BringToTop, "Bring to front", FlowinMenuShowOnMainMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::no_frame, "Frameless window", flowin_menu_show_on_all))
+        if (auto node = group->NewNode(MenuCommands::NoFrame, "Frameless window", FlowinMenuShowOnAll))
         {
             node->action = [id = node->id](cfg_t& config)
             {
                 if (config != nullptr)
                 {
-                    if (is_flowin_alive(config))
-                        notify_flowin_command(config, id);
+                    if (IsFlowinAlive(config))
+                        NotifyFlowinCommand(config, id);
                     else
                         config->show_caption = !config->show_caption;
                 }
@@ -136,135 +136,135 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::no_frame_silent, "Frameless window (no dialog)",
-                                        flowin_menu_show_on_main_menu))
+        if (auto node = group->NewNode(MenuCommands::NoFrameSilent, "Frameless window (no dialog)",
+                                        FlowinMenuShowOnMainMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 flags_default_hidden();
                 return flags;
             };
         }
 
         // snap group
-        if (auto snap_group_node = group->new_node(menu_commands::invalid, "", flowin_menu_show_on_all))
+        if (auto snap_group_node = group->NewNode(MenuCommands::Invalid, "", FlowinMenuShowOnAll))
         {
-            auto snap_group = flowin_menu_group::new_group(flowin_menu_group_submenu, "Snap");
+            auto snap_group = FlowinMenuGroup::NewGroup(FlowinMenuGroupSubmenu, "Snap");
             snap_group_node->child_group = snap_group;
 
             if (auto node =
-                    snap_group->new_node(menu_commands::snap_to_edge, "Snap to screen edge", flowin_menu_show_on_all))
+                    snap_group->NewNode(MenuCommands::SnapToEdge, "Snap to screen edge", FlowinMenuShowOnAll))
             {
-                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+                node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
                 node->get_flags = [](const cfg_t& config)
                 {
                     uint32_t flags = 0;
                     flags_require_config();
                     flags_check(config && config->snap_to_edge);
-                    flags_disable(!is_flowin_alive(config));
+                    flags_disable(!IsFlowinAlive(config));
                     return flags;
                 };
             }
 
-            if (auto node = snap_group->new_node(menu_commands::auto_hide_when_snapped, "Auto-hide when snapped",
-                                                 flowin_menu_show_on_all))
+            if (auto node = snap_group->NewNode(MenuCommands::AutoHideWhenSnapped, "Auto-hide when snapped",
+                                                 FlowinMenuShowOnAll))
             {
-                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+                node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
                 node->get_flags = [](const cfg_t& config)
                 {
                     uint32_t flags = 0;
                     flags_require_config();
                     flags_check(config && config->auto_hide_when_snapped);
-                    flags_disable(!config || !config->snap_to_edge || !is_flowin_alive(config));
+                    flags_disable(!config || !config->snap_to_edge || !IsFlowinAlive(config));
                     return flags;
                 };
             }
 
-            if (auto node = snap_group->new_node(menu_commands::snap_hide, "Hide", flowin_menu_show_on_all))
+            if (auto node = snap_group->NewNode(MenuCommands::SnapHide, "Hide", FlowinMenuShowOnAll))
             {
-                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+                node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
                 node->get_flags = [](const cfg_t& config)
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_disable(!is_flowin_alive(config) || config->auto_hide_when_snapped);
+                    flags_disable(!IsFlowinAlive(config) || config->auto_hide_when_snapped);
                     // flags_default_hidden();
                     return flags;
                 };
             }
 
-            if (auto node = snap_group->new_node(menu_commands::snap_show, "Show", flowin_menu_show_on_all))
+            if (auto node = snap_group->NewNode(MenuCommands::SnapShow, "Show", FlowinMenuShowOnAll))
             {
-                node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+                node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
                 node->get_flags = [](const cfg_t& config)
                 {
                     uint32_t flags = 0;
                     flags_require_config();
-                    flags_disable(!is_flowin_alive(config) || config->auto_hide_when_snapped);
+                    flags_disable(!IsFlowinAlive(config) || config->auto_hide_when_snapped);
                     // flags_default_hidden();
                     return flags;
                 };
             }
         }
 
-        if (auto node = group->new_node(menu_commands::reset_position, "Reset position", flowin_menu_show_on_main_menu))
+        if (auto node = group->NewNode(MenuCommands::ResetPosition, "Reset position", FlowinMenuShowOnMainMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::edit_mode, "Edit mode", flowin_menu_show_on_all))
+        if (auto node = group->NewNode(MenuCommands::EditMode, "Edit mode", FlowinMenuShowOnAll))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
                 flags_check(config && config->edit_mode);
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::show_on_taskbar, "Show in taskbar", flowin_menu_show_on_system_menu))
+        if (auto node = group->NewNode(MenuCommands::ShowOnTaskbar, "Show in taskbar", FlowinMenuShowOnSystemMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
                 flags_check(config && config->show_in_taskbar);
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::custom_title, "Custom title", flowin_menu_show_on_system_menu))
+        if (auto node = group->NewNode(MenuCommands::CustomTitle, "Custom title", FlowinMenuShowOnSystemMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
         }
 
-        if (auto node = group->new_node(menu_commands::auto_hide_when_hovered, "Auto-hide when hovered", flowin_menu_show_on_all))
+        if (auto node = group->NewNode(MenuCommands::AutoHideWhenHovered, "Auto-hide when hovered", FlowinMenuShowOnAll))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
@@ -275,12 +275,12 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::transparency, "Transparency", flowin_menu_show_on_system_menu))
+        if (auto node = group->NewNode(MenuCommands::Transparency, "Transparency", FlowinMenuShowOnSystemMenu))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
         }
 
-        if (auto node = group->new_node(menu_commands::show_info, "Info", flowin_menu_show_on_flowin))
+        if (auto node = group->NewNode(MenuCommands::ShowInfo, "Info", FlowinMenuShowOnFlowin))
         {
             node->action = [](cfg_t& config)
             {
@@ -301,58 +301,58 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
             };
         }
 
-        if (auto node = group->new_node(menu_commands::destroy_flowin, "Delete", flowin_menu_show_on_all))
+        if (auto node = group->NewNode(MenuCommands::DestroyFlowin, "Delete", FlowinMenuShowOnAll))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
         // Export/Import config (Shift+Right-click only)
-        if (auto node = group->new_node(menu_commands::export_config, "Export configuration",
-                                        flowin_menu_show_on_system_menu | flowin_menu_show_shift_only))
+        if (auto node = group->NewNode(MenuCommands::ExportConfig, "Export configuration",
+                                        FlowinMenuShowOnSystemMenu | FlowinMenuShowShiftOnly))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::import_config, "Import configuration",
-                                        flowin_menu_show_on_system_menu | flowin_menu_show_shift_only))
+        if (auto node = group->NewNode(MenuCommands::ImportConfig, "Import configuration",
+                                        FlowinMenuShowOnSystemMenu | FlowinMenuShowShiftOnly))
         {
-            node->action = [id = node->id](cfg_t& config) { notify_flowin_command(config, id); };
+            node->action = [id = node->id](cfg_t& config) { NotifyFlowinCommand(config, id); };
 
             node->get_flags = [](const cfg_t& config)
             {
                 uint32_t flags = 0;
                 flags_require_config();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::show_and_hide_main_window, "Show flowin, hide main window",
-                                        flowin_menu_show_on_flowin))
+        if (auto node = group->NewNode(MenuCommands::ShowAndHideMainWindow, "Show flowin, hide main window",
+                                        FlowinMenuShowOnFlowin))
         {
             node->action = [](cfg_t& config)
             {
                 if (config != nullptr)
                 {
-                    auto core = flowin_core::get();
-                    if (!core->is_flowin_alive(config->guid))
-                        core->create_flowin(config->guid);
+                    auto core = FlowinCore::Get();
+                    if (!core->IsFlowinAlive(config->guid))
+                        core->CreateFlowin(config->guid);
                     ui_control::get()->hide();
                 }
             };
@@ -362,21 +362,21 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 uint32_t flags = 0;
                 flags_require_config();
                 flags_default_hidden();
-                flags_disable(is_flowin_alive(config));
+                flags_disable(IsFlowinAlive(config));
                 return flags;
             };
         }
 
-        if (auto node = group->new_node(menu_commands::close_and_activate_main_window,
-                                        "Close flowin, activate main window", flowin_menu_show_on_flowin))
+        if (auto node = group->NewNode(MenuCommands::CloseAndActivateMainWindow,
+                                        "Close flowin, activate main window", FlowinMenuShowOnFlowin))
         {
             node->action = [](cfg_t& config)
             {
                 if (config != nullptr)
                 {
-                    auto core = flowin_core::get();
-                    if (core->is_flowin_alive(config->guid))
-                        core->post_message(config->guid, WM_CLOSE);
+                    auto core = FlowinCore::Get();
+                    if (core->IsFlowinAlive(config->guid))
+                        core->PostFlowinMessage(config->guid, WM_CLOSE);
                     ui_control::get()->activate();
                 }
             };
@@ -386,7 +386,7 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
                 uint32_t flags = 0;
                 flags_require_config();
                 flags_default_hidden();
-                flags_disable(!is_flowin_alive(config));
+                flags_disable(!IsFlowinAlive(config));
                 return flags;
             };
         }
@@ -397,50 +397,50 @@ flowin_menu_group::sp_t build_flowin_menu_nodes()
     return shared_nodes;
 }
 
-flowin_menu_group_list build_flowin_menu_groups()
+FlowinMenuGroupList BuildFlowinMenuGroups()
 {
-    flowin_menu_group_list groups;
+    FlowinMenuGroupList groups;
     // root
-    if (auto root = flowin_menu_group::new_group(flowin_menu_group_root))
+    if (auto root = FlowinMenuGroup::NewGroup(FlowinMenuGroupRoot))
     {
-        if (auto node = root->new_node(menu_commands::new_flowin, "New flowin"))
+        if (auto node = root->NewNode(MenuCommands::NewFlowin, "New flowin"))
         {
-            node->action = [](cfg_t&) { flowin_core::get()->create_flowin(); };
+            node->action = [](cfg_t&) { FlowinCore::Get()->CreateFlowin(); };
         }
 
-        if (auto node = root->new_node(menu_commands::show_all, "Show all"))
+        if (auto node = root->NewNode(MenuCommands::ShowAll, "Show all"))
         {
             node->action = [](cfg_t&)
             {
-                configuration::for_each(
-                    [](const cfg_flowin_host::sp_t& config)
+                Configuration::ForEach(
+                    [](const CfgFlowinHost::Ptr& config)
                     {
-                        auto core = flowin_core::get();
-                        if (core->is_flowin_alive(config->guid))
-                            core->post_message(config->guid, UWM_FLOWIN_ACTIVE);
+                        auto core = FlowinCore::Get();
+                        if (core->IsFlowinAlive(config->guid))
+                            core->PostFlowinMessage(config->guid, UWM_FLOWIN_ACTIVE);
                         else
-                            core->create_flowin(config->guid);
+                            core->CreateFlowin(config->guid);
                     });
             };
 
             node->get_flags = [](const cfg_t&)
             {
                 uint32_t flags = 0;
-                const size_t flowin_count = configuration::get_count();
+                const size_t flowin_count = Configuration::GetCount();
                 flags_disable(flowin_count == 0);
                 return flags;
             };
         }
 
-        if (auto node = root->new_node(menu_commands::close_all, "Close all"))
+        if (auto node = root->NewNode(MenuCommands::CloseAll, "Close all"))
         {
             node->action = [](cfg_t&)
-            { configuration::for_each([](const cfg_flowin_host::sp_t& config) { notify_flowin(config, WM_CLOSE); }); };
+            { Configuration::ForEach([](const CfgFlowinHost::Ptr& config) { NotifyFlowin(config, WM_CLOSE); }); };
 
             node->get_flags = [](const cfg_t&)
             {
                 uint32_t flags = 0;
-                const size_t flowin_count = configuration::get_count();
+                const size_t flowin_count = Configuration::GetCount();
                 flags_disable(flowin_count == 0);
                 return flags;
             };
@@ -448,35 +448,35 @@ flowin_menu_group_list build_flowin_menu_groups()
             groups.push_back(root);
         }
 
-        if (auto& shared_group = build_flowin_menu_nodes())
+        if (auto& shared_group = BuildFlowinMenuNodes())
         {
             auto& shared_nodes = shared_group->nodes;
             // active
-            if (auto active = flowin_menu_group::new_group(flowin_menu_group_active))
+            if (auto active = FlowinMenuGroup::NewGroup(FlowinMenuGroupActive))
             {
                 // identify
-                active->new_node(menu_commands::identify, "", flowin_menu_show_on_active);
+                active->NewNode(MenuCommands::Identify, "", FlowinMenuShowOnActive);
                 // separator
-                active->new_node(menu_commands::separator, "", flowin_menu_show_on_active);
+                active->NewNode(MenuCommands::Separator, "", FlowinMenuShowOnActive);
                 // shared nodes
                 for (auto& node : shared_nodes)
                 {
-                    if (node->show_flags & flowin_menu_show_on_active)
+                    if (node->show_flags & FlowinMenuShowOnActive)
                         active->nodes.push_back(node);
                 }
 
                 groups.push_back(active);
             }
             // available flowins
-            configuration::for_each(
-                [&groups, &shared_nodes](cfg_flowin_host::sp_t& config)
+            Configuration::ForEach(
+                [&groups, &shared_nodes](CfgFlowinHost::Ptr& config)
                 {
-                    if (auto group = flowin_menu_group::new_group(flowin_menu_group_live))
+                    if (auto group = FlowinMenuGroup::NewGroup(FlowinMenuGroupLive))
                     {
                         group->config = config;
                         for (auto& node : shared_nodes)
                         {
-                            if (node->show_flags & flowin_menu_show_on_flowin)
+                            if (node->show_flags & FlowinMenuShowOnFlowin)
                                 group->nodes.push_back(node);
                         }
 

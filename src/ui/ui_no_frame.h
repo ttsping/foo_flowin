@@ -1,7 +1,7 @@
 #pragma once
 #include "resource.h"
 
-class cfg_flowin_host;
+class CfgFlowinHost;
 
 class CNoFrameSettingsDialog : public CDialogImpl<CNoFrameSettingsDialog>
 {
@@ -11,7 +11,7 @@ public:
         IDD = IDD_NO_FRAME_SETTING
     };
 
-    CNoFrameSettingsDialog(std::shared_ptr<cfg_flowin_host>& host_cfg) : cfg_(host_cfg)
+    CNoFrameSettingsDialog(std::shared_ptr<CfgFlowinHost>& host_cfg) : cfg(host_cfg)
     {
     }
 
@@ -25,6 +25,6 @@ private:
     void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/);
 
 private:
-    std::shared_ptr<cfg_flowin_host> cfg_;
-    DarkMode::CHooks dark_mode_hooks_;
+    std::shared_ptr<CfgFlowinHost> cfg;
+    DarkMode::CHooks dark_mode_hooks;
 };

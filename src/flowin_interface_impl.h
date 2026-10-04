@@ -45,12 +45,12 @@ public:
     STDMETHODIMP Move(INT x, INT y, INT width, INT height);
 
 protected:
-    HWND try_get_flowin_window();
+    HWND TryGetFlowinWindow();
 
 protected:
-    GUID host_guid_;
-    HWND host_window_;
-    cfg_flowin_host::sp_t config_;
+    GUID host_guid;
+    HWND host_window;
+    CfgFlowinHost::Ptr config;
 };
 
 
@@ -89,5 +89,5 @@ public:
     STDMETHODIMP LockServer(BOOL lock) { return S_OK; }
 
 protected:
-    volatile LONG ref_count_;
+    volatile LONG ref_count;
 };

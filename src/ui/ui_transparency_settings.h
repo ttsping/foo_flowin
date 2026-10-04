@@ -1,7 +1,7 @@
 #pragma once
 #include "resource.h"
 
-class cfg_flowin_host;
+class CfgFlowinHost;
 
 class CTransparencySetDialog : public CDialogImpl<CTransparencySetDialog>
 {
@@ -11,7 +11,7 @@ public:
         IDD = IDD_TRANSPARENCY
     };
 
-    CTransparencySetDialog(HWND wnd, std::shared_ptr<cfg_flowin_host>& host_cfg) : window_(wnd), cfg_(host_cfg)
+    CTransparencySetDialog(HWND wnd, std::shared_ptr<CfgFlowinHost>& host_cfg) : window(wnd), cfg(host_cfg)
     {
     }
 
@@ -29,9 +29,9 @@ private:
     void OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl);
 
 private:
-    std::shared_ptr<cfg_flowin_host> cfg_;
-    HWND window_;
-    CTrackBarCtrl track_ctrl_;
-    CTrackBarCtrl track_hover_ctrl_;
-    DarkMode::CHooks dark_mode_hooks_;
+    std::shared_ptr<CfgFlowinHost> cfg;
+    HWND window;
+    CTrackBarCtrl track_ctrl;
+    CTrackBarCtrl track_hover_ctrl;
+    DarkMode::CHooks dark_mode_hooks;
 };

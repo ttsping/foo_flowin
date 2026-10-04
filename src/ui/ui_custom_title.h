@@ -9,7 +9,7 @@ public:
         IDD = IDD_HOST_CUSTOM_TITLE
     };
 
-    CCustomTitleDialog(pfc::string8& title) : title_(title)
+    CCustomTitleDialog(pfc::string8& title) : title(title)
     {
     }
 
@@ -23,6 +23,6 @@ private:
     void OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/);
 
 private:
-    pfc::string8& title_;
-    DarkMode::CHooks dark_mode_hooks_;
+    pfc::string8& title;
+    DarkMode::CHooks dark_mode_hooks;
 };

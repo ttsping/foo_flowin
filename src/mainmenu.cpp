@@ -6,35 +6,35 @@
 
 namespace
 {
-using namespace flowin;
+using namespace Flowin;
 
 constexpr uint32_t kMenuPathStride = 32;
 
-class flowin_mainmenu_node_command : public mainmenu_node_command
+class FlowinMainmenuNodeCommand : public mainmenu_node_command
 {
 public:
-    explicit flowin_mainmenu_node_command(const flowin_menu_node::sp_t& node,
-                                          const cfg_flowin_host::sp_t& config = nullptr,
+    explicit FlowinMainmenuNodeCommand(const FlowinMenuNode::Ptr& node,
+                                          const CfgFlowinHost::Ptr& config = nullptr,
                                           uint32_t node_path = 0)
-        : node_(node), config_(config), node_path_(node_path)
+        : node(node), config(config), node_path(node_path)
     {
-        has_dynamic_config_ = (config_ == nullptr && is_config_reqired());
+        has_dynamic_config = (config == nullptr && IsConfigRequired());
     }
 
     void get_display(pfc::string_base& text, t_uint32& flags) override
     {
-        if (has_dynamic_config_)
-            load_config();
+        if (has_dynamic_config)
+            LoadConfig();
 
-        if (node_->id == menu_commands::identify)
+        if (node->id == MenuCommands::Identify)
         {
-            text = config_ ? config_->window_title : "Unknown";
+            text = config ? config->window_title : "Unknown";
             flags = mainmenu_commands::flag_disabled;
         }
         else
         {
-            text = node_->text.c_str();
-            flags = node_->get_flags(config_);
+            text = node->text.c_str();
+            flags = node->get_flags(config);
         }
     }
 
@@ -46,16 +46,16 @@ public:
         get_display(name, flags);
 
         GUID config_guid = guid_dummy;
-        if (!has_dynamic_config_ && is_config_reqired())
+        if (!has_dynamic_config && IsConfigRequired())
         {
-            load_config();
-            if (config_ != nullptr)
-                config_guid = config_->guid;
+            LoadConfig();
+            if (config != nullptr)
+                config_guid = config->guid;
         }
 
         stream_formatter_hasher_md5<> hasher;
-        hasher << static_cast<t_uint32>(node_path_);
-        hasher << static_cast<t_uint32>(node_->id);
+        hasher << static_cast<t_uint32>(node_path);
+        hasher << static_cast<t_uint32>(node->id);
         hasher << config_guid;
 
         return hasher.resultGuid();
@@ -63,25 +63,25 @@ public:
 
     void execute(service_ptr_t<service_base> callback) override
     {
-        node_->action(config_);
+        node->action(config);
     }
 
 private:
-    void load_config()
+    void LoadConfig()
     {
-        if (config_ != nullptr)
+        if (config != nullptr)
             return;
 
-        const GUID active_guid = flowin_core::get()->get_latest_active_flowin();
+        const GUID active_guid = FlowinCore::Get()->GetLatestActiveFlowin();
         if (active_guid == pfc::guid_null)
             return;
 
-        cfg_flowin::get()->enum_configuration_v2(
-            [&](cfg_flowin_host::sp_t& config)
+        CfgFlowin::Get()->EnumConfigurationV2(
+            [&](CfgFlowinHost::Ptr& host_config)
             {
-                if (config->guid == active_guid)
+                if (host_config->guid == active_guid)
                 {
-                    config_ = config;
+                    config = host_config;
                     return true; // stop
                 }
 
@@ -89,13 +89,13 @@ private:
             });
     }
 
-    bool is_config_reqired() const
+    bool IsConfigRequired() const
     {
-        switch (node_->id)
+        switch (node->id)
         {
-        case menu_commands::new_flowin:
-        case menu_commands::show_all:
-        case menu_commands::close_all:
+        case MenuCommands::NewFlowin:
+        case MenuCommands::ShowAll:
+        case MenuCommands::CloseAll:
             return false;
 
         default:
@@ -106,63 +106,63 @@ private:
     }
 
 private:
-    cfg_flowin_host::sp_t config_;
-    flowin_menu_node::sp_t node_;
-    uint32_t node_path_ = 0;
-    bool has_dynamic_config_ = false;
+    CfgFlowinHost::Ptr config;
+    FlowinMenuNode::Ptr node;
+    uint32_t node_path = 0;
+    bool has_dynamic_config = false;
 };
 
-class flowin_mainmenu_node_group : public mainmenu_node_group
+class FlowinMainmenuNodeGroup : public mainmenu_node_group
 {
 public:
-    flowin_mainmenu_node_group()
+    FlowinMainmenuNodeGroup()
     {
-        menu_groups_ = build_flowin_menu_groups();
-        for (auto& group : menu_groups_)
+        menu_groups = BuildFlowinMenuGroups();
+        for (auto& group : menu_groups)
         {
-            if (group->group == flowin_menu_group_root)
+            if (group->group == FlowinMenuGroupRoot)
             {
                 for (auto& node : group->nodes)
                 {
-                    menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config));
+                    menu_nodes.push_back(fb2k::service_new<FlowinMainmenuNodeCommand>(node, group->config));
                 }
             }
             else
             {
-                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(group));
+                menu_nodes.push_back(fb2k::service_new<FlowinMainmenuNodeGroup>(group));
             }
         }
     }
 
-    explicit flowin_mainmenu_node_group(flowin_menu_group::sp_t& group, uint32_t node_path = 0) : menu_groups_{group}
+    explicit FlowinMainmenuNodeGroup(FlowinMenuGroup::Ptr& group, uint32_t node_path = 0) : menu_groups{group}
     {
         const uint32_t child_path = node_path * kMenuPathStride + static_cast<uint32_t>(group->group + 1);
         for (auto& node : group->nodes)
         {
             if (node->child_group != nullptr)
-                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_group>(node->child_group, child_path));
-            else if (node->id == menu_commands::invalid)
-                menu_nodes_.push_back(fb2k::service_new<mainmenu_node_separator>());
+                menu_nodes.push_back(fb2k::service_new<FlowinMainmenuNodeGroup>(node->child_group, child_path));
+            else if (node->id == MenuCommands::Invalid)
+                menu_nodes.push_back(fb2k::service_new<mainmenu_node_separator>());
             else
-                menu_nodes_.push_back(fb2k::service_new<flowin_mainmenu_node_command>(node, group->config, node_path));
+                menu_nodes.push_back(fb2k::service_new<FlowinMainmenuNodeCommand>(node, group->config, node_path));
         }
     }
 
     void get_display(pfc::string_base& text, t_uint32& flags) override
     {
         flags = 0;
-        if (menu_groups_.size() == 1)
+        if (menu_groups.size() == 1)
         {
-            auto& group = menu_groups_.front();
+            auto& group = menu_groups.front();
             if (group->text.empty())
             {
                 switch (group->group)
                 {
-                case flowin_menu_group_active:
+                case FlowinMenuGroupActive:
                     text = "Active";
                     return;
 
-                case flowin_menu_group_live:
+                case FlowinMenuGroupLive:
                     text = group->config ? group->config->window_title : "Unknown";
                     return;
 
@@ -182,20 +182,20 @@ public:
 
     t_size get_children_count() override
     {
-        return menu_nodes_.size();
+        return menu_nodes.size();
     }
 
     mainmenu_node::ptr get_child(t_size index) override
     {
-        return menu_nodes_[index];
+        return menu_nodes[index];
     }
 
 private:
-    std::vector<mainmenu_node::ptr> menu_nodes_;
-    flowin_menu_group_list menu_groups_;
+    std::vector<mainmenu_node::ptr> menu_nodes;
+    FlowinMenuGroupList menu_groups;
 };
 
-class flowin_mainmenu : public mainmenu_commands_v2
+class FlowinMainmenu : public mainmenu_commands_v2
 {
 public:
     t_uint32 get_command_count() override
@@ -234,7 +234,7 @@ public:
 
     mainmenu_node::ptr dynamic_instantiate(t_uint32 index) override
     {
-        return fb2k::service_new<flowin_mainmenu_node_group>();
+        return fb2k::service_new<FlowinMainmenuNodeGroup>();
     }
 
     bool dynamic_execute(t_uint32 index, const GUID& subID, service_ptr_t<service_base> callback) override
@@ -243,6 +243,6 @@ public:
     }
 };
 
-static mainmenu_commands_factory_t<flowin_mainmenu> g_flowin_mainmenu_factory;
+static mainmenu_commands_factory_t<FlowinMainmenu> g_flowin_mainmenu_factory;
 
 } // namespace

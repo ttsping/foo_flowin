@@ -8,22 +8,22 @@ BOOL CTransparencySetDialog::OnInitDialog(CWindow /*wnd*/, LPARAM /*lp*/)
     ui_config_manager::ptr api;
     if (ui_config_manager::tryGet(api))
     {
-        dark_mode_hooks_.AddDialogWithControls(m_hWnd);
-        dark_mode_hooks_.SetDark(api->is_dark_mode());
+        dark_mode_hooks.AddDialogWithControls(m_hWnd);
+        dark_mode_hooks.SetDark(api->is_dark_mode());
     }
     CenterWindow(GetParent());
-    track_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY));
-    track_ctrl_.SetRange(0, 100);
-    track_ctrl_.SetPos((int)cfg_->transparency);
+    track_ctrl.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY));
+    track_ctrl.SetRange(0, 100);
+    track_ctrl.SetPos((int)cfg->transparency);
 
-    uButton_SetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE, cfg_->enable_transparency_active);
+    uButton_SetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE, cfg->enable_transparency_active);
 
-    track_hover_ctrl_.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY_HOVER));
-    track_hover_ctrl_.SetRange(0, 100);
-    track_hover_ctrl_.SetPos((int)cfg_->transparency_active);
-    if (!cfg_->enable_transparency_active)
+    track_hover_ctrl.Attach(GetDlgItem(IDC_SLIDER_TRANSPARENCY_HOVER));
+    track_hover_ctrl.SetRange(0, 100);
+    track_hover_ctrl.SetPos((int)cfg->transparency_active);
+    if (!cfg->enable_transparency_active)
     {
-        track_hover_ctrl_.EnableWindow(FALSE);
+        track_hover_ctrl.EnableWindow(FALSE);
     }
     return TRUE;
 }
@@ -35,8 +35,8 @@ void CTransparencySetDialog::OnCloseCmd(UINT /*code*/, int id, CWindow /*ctrl*/)
 
 void CTransparencySetDialog::OnEnableHoverTransparency(UINT /*code*/, int /*id*/, CWindow /*ctrl*/)
 {
-    cfg_->enable_transparency_active = uButton_GetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE);
-    track_hover_ctrl_.EnableWindow(cfg_->enable_transparency_active);
+    cfg->enable_transparency_active = uButton_GetCheck(*this, IDC_CHK_TRANSPARENCY_ACTIVE);
+    track_hover_ctrl.EnableWindow(cfg->enable_transparency_active);
 }
 
 void CTransparencySetDialog::OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ctrl)
@@ -44,10 +44,10 @@ void CTransparencySetDialog::OnHScroll(UINT code, UINT /*pos*/, CTrackBarCtrl ct
     if (code == TB_THUMBTRACK || code == TB_ENDTRACK)
     {
         int transparency = -1;
-        cfg_->transparency = track_ctrl_.GetPos();
-        cfg_->transparency_active = track_hover_ctrl_.GetPos();
+        cfg->transparency = track_ctrl.GetPos();
+        cfg->transparency_active = track_hover_ctrl.GetPos();
         transparency =
-            ctrl.GetDlgCtrlID() == IDC_SLIDER_TRANSPARENCY ? (int)cfg_->transparency : (int)cfg_->transparency_active;
-        ::PostMessage(window_, UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency, 0);
+            ctrl.GetDlgCtrlID() == IDC_SLIDER_TRANSPARENCY ? (int)cfg->transparency : (int)cfg->transparency_active;
+        ::PostMessage(window, UWM_FLOWIN_UPDATE_TRANSPARENCY, (WPARAM)transparency, 0);
     }
 }

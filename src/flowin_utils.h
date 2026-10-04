@@ -1,10 +1,10 @@
 #pragma once
 
-namespace utils
+namespace Utils
 {
 
 template <typename F, std::enable_if_t<std::is_function_v<std::remove_pointer_t<F>>, int> = 0>
-bool get_proc_address(HMODULE h, const char* funcName, F& f)
+bool GetProcAddress(HMODULE h, const char* funcName, F& f)
 {
     if (auto ptr = ::GetProcAddress(h, funcName))
     {
@@ -16,12 +16,12 @@ bool get_proc_address(HMODULE h, const char* funcName, F& f)
     return false;
 }
 
-bool is_composition_enabled();
+bool IsCompositionEnabled();
 
-bool is_maximized(HWND wnd);
+bool IsMaximized(HWND wnd);
 
-int32_t get_system_metrics(int32_t index, uint32_t dpi);
+int32_t GetSystemMetrics(int32_t index, uint32_t dpi);
 
-uint32_t calculate_crc32(const void* data, size_t size);
+uint32_t CalculateCrc32(const void* data, size_t size);
 
-} // namespace utils
+} // namespace Utils

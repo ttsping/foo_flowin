@@ -3,24 +3,24 @@
 #include "flowin_vars.h"
 #include "flowin_callback.h"
 
-cfg_flowin g_flowin_config;
+CfgFlowin g_flowin_config;
 
-cfg_flowin* cfg_flowin::get()
+CfgFlowin* CfgFlowin::Get()
 {
     return &g_flowin_config;
 }
 
-enum t_flowin_config_version
+enum FlowinConfigVersion
 {
-    t_version_010 = 1,
-    t_version_011 = 3,
-    t_version_012 = 5,
-    t_version_current = t_version_012
+    Version010 = 1,
+    Version011 = 3,
+    Version012 = 5,
+    VersionCurrent = Version012
 };
 
-void cfg_flowin_host::reset()
+void CfgFlowinHost::Reset()
 {
-    version = t_version_current;
+    version = VersionCurrent;
     show_on_startup = true;
     always_on_top = false;
     dock_to_taskbar = false;
@@ -39,20 +39,20 @@ void cfg_flowin_host::reset()
     transparency = 0;
     transparency_active = 0;
     auto_hide_when_hovered = false;
-    ZeroMemory(&cfg_no_frame, sizeof(cfg_no_frame));
-    cfg_no_frame.shadowed = true;
-    cfg_no_frame.resizable = true;
-    cfg_no_frame.draggable = true;
-    cfg_no_frame.rounded_corner = true;
+    ZeroMemory(&cfg_frameless, sizeof(cfg_frameless));
+    cfg_frameless.shadowed = true;
+    cfg_frameless.resizable = true;
+    cfg_frameless.draggable = true;
+    cfg_frameless.rounded_corner = true;
 
     ZeroMemory(&window_rect, sizeof(window_rect));
     ZeroMemory(reserved, sizeof(reserved));
     ZeroMemory(bool_reserved, sizeof(bool_reserved));
 }
 
-void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_callback& abort)
+void CfgFlowinHost::SetDataRaw(stream_reader* reader, t_size size, abort_callback& abort)
 {
-    reset();
+    Reset();
     if (size < sizeof(version))
         return;
 
@@ -62,20 +62,20 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
         reader->read_lendian_t(version, abort);
         switch (version)
         {
-        case t_version_012:
+        case Version012:
             reader->read_object_t(auto_hide_when_hovered, abort);
             reader->read_object(bool_reserved, sizeof(bool_reserved), abort);
             [[fallthrough]];
-        case t_version_011:
+        case Version011:
             reader->read_object_t(enable_transparency_active, abort);
             reader->read_lendian_t(transparency, abort);
             reader->read_lendian_t(transparency_active, abort);
-            reader->read_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
+            reader->read_object(&cfg_frameless, sizeof(cfg_frameless), abort);
             reader->read_object_t(show_in_taskbar, abort);
             reader->read_object(do_not_use, sizeof(do_not_use), abort);
             reader->read_object(reserved, sizeof(reserved), abort);
             [[fallthrough]];
-        case t_version_010:
+        case Version010:
             reader->read_object_t(guid, abort);
             reader->read_object_t(show_on_startup, abort);
             reader->read_object_t(always_on_top, abort);
@@ -102,15 +102,15 @@ void cfg_flowin_host::set_data_raw(stream_reader* reader, t_size size, abort_cal
     }
     catch (std::exception&)
     {
-        reset();
+        Reset();
     }
 }
 
-void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
+void CfgFlowinHost::GetDataRaw(stream_writer* writer, abort_callback& abort)
 {
     try
     {
-        uint32_t ver = t_version_current;
+        uint32_t ver = VersionCurrent;
         writer->write_lendian_t(ver, abort);
         // version 012
         writer->write_object_t(auto_hide_when_hovered, abort);
@@ -119,7 +119,7 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
         writer->write_object_t(enable_transparency_active, abort);
         writer->write_lendian_t(transparency, abort);
         writer->write_lendian_t(transparency_active, abort);
-        writer->write_object(&cfg_no_frame, sizeof(cfg_no_frame), abort);
+        writer->write_object(&cfg_frameless, sizeof(cfg_frameless), abort);
         writer->write_object_t(show_in_taskbar, abort);
         writer->write_object(do_not_use, sizeof(do_not_use), abort);
         writer->write_object(reserved, sizeof(reserved), abort);
@@ -151,114 +151,114 @@ void cfg_flowin_host::get_data_raw(stream_writer* writer, abort_callback& abort)
     }
 }
 
-void cfg_flowin_host::write_subelement(ui_element_config::ptr data)
+void CfgFlowinHost::WriteSubelement(ui_element_config::ptr data)
 {
     ui_element_config_parser parser(data);
     subelement_data.from_stream(&parser.m_stream, parser.get_remaining(), fb2k::noAbort);
 }
 
-ui_element_config::ptr cfg_flowin_host::subelement(unsigned /*id*/)
+ui_element_config::ptr CfgFlowinHost::Subelement(unsigned /*id*/)
 {
     return ui_element_config::g_create(subelement_guid, subelement_data.get_ptr(), subelement_data.get_size());
 }
 
-ui_element_config::ptr cfg_flowin_host::build_configuration()
+ui_element_config::ptr CfgFlowinHost::BuildConfiguration()
 {
     // generate configuration that initailze ui element only
     ui_element_config_builder builder;
     builder.write_raw(&this->guid, sizeof(this->guid));
-    return builder.finish(flowin::guids::dui_host_element);
+    return builder.finish(Flowin::Guids::dui_host_element);
 }
 
-GUID cfg_flowin_host::cfg_get_guid(ui_element_config::ptr data)
+GUID CfgFlowinHost::CfgGetGuid(ui_element_config::ptr data)
 {
     // read host guid from ui_element_config
-    PFC_ASSERT(data->get_guid() == flowin::guids::dui_host_element);
+    PFC_ASSERT(data->get_guid() == Flowin::Guids::dui_host_element);
     GUID guid;
     ui_element_config_parser parser(data);
     parser.read_raw(&guid, sizeof(guid));
     return guid;
 }
 
-cfg_flowin::cfg_flowin() : cfg_var(g_flowin_config_guid)
+CfgFlowin::CfgFlowin() : cfg_var(g_flowin_config_guid)
 {
-    reset();
+    Reset();
 }
 
-void cfg_flowin::reset()
+void CfgFlowin::Reset()
 {
-    version = t_version_current;
+    version = VersionCurrent;
 }
 
-void cfg_flowin::register_callback(cfg_flowin_callback* cb)
+void CfgFlowin::RegisterCallback(CfgFlowinCallback* cb)
 {
     RETURN_VOID_IF(cb == nullptr);
     core_api::ensure_main_thread();
-    if (auto it = std::find(callbacks_.begin(), callbacks_.end(), cb); it == callbacks_.end())
-        callbacks_.push_back(cb);
+    if (auto it = std::find(callbacks.begin(), callbacks.end(), cb); it == callbacks.end())
+        callbacks.push_back(cb);
 }
 
-void cfg_flowin::unregister_callback(cfg_flowin_callback* cb)
+void CfgFlowin::UnregisterCallback(CfgFlowinCallback* cb)
 {
     RETURN_VOID_IF(cb == nullptr);
     core_api::ensure_main_thread();
-    if (auto it = std::find(callbacks_.begin(), callbacks_.end(), cb); it != callbacks_.end())
-        callbacks_.erase(it);
+    if (auto it = std::find(callbacks.begin(), callbacks.end(), cb); it != callbacks.end())
+        callbacks.erase(it);
 }
 
-cfg_flowin_host::sp_t cfg_flowin::find_configuration(const GUID& host_guid)
+CfgFlowinHost::Ptr CfgFlowin::FindConfiguration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
-    auto& configs = host_config_list_;
-    auto it = std::find_if(configs.begin(), configs.end(), cfg_flowin_host_comparator{host_guid});
+    auto& configs = host_config_list;
+    auto it = std::find_if(configs.begin(), configs.end(), CfgFlowinHostComparator{host_guid});
     return it == configs.end() ? nullptr : *it;
 }
 
-cfg_flowin_host::sp_t cfg_flowin::add_or_find_configuration(const GUID& host_guid)
+CfgFlowinHost::Ptr CfgFlowin::AddOrFindConfiguration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
 
-    if (auto cfg = find_configuration(host_guid))
+    if (auto cfg = FindConfiguration(host_guid))
         return cfg;
 
-    auto cfg = new_host_configuration();
+    auto cfg = NewHostConfiguration();
     CoCreateGuid(&cfg->guid);
-    host_config_list_.push_back(cfg);
+    host_config_list.push_back(cfg);
     return cfg;
 }
 
-void cfg_flowin::remove_configuration(const GUID& host_guid)
+void CfgFlowin::RemoveConfiguration(const GUID& host_guid)
 {
     core_api::ensure_main_thread();
-    auto& configs = host_config_list_;
-    auto it = std::find_if(configs.begin(), configs.end(), cfg_flowin_host_comparator{host_guid});
+    auto& configs = host_config_list;
+    auto it = std::find_if(configs.begin(), configs.end(), CfgFlowinHostComparator{host_guid});
     if (it != configs.end())
         configs.erase(it);
 }
 
-void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort)
+void CfgFlowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort)
 {
-    for (auto& cb : callbacks_)
-        cb->on_cfg_pre_write();
+    for (auto& cb : callbacks)
+        cb->OnCfgPreWrite();
 
     try
     {
-        uint32_t ver = t_version_current;
+        uint32_t ver = VersionCurrent;
         p_stream->write_lendian_t(ver, p_abort);
         p_stream->write_object_t(show_debug_log, p_abort);
         /*
         * flowin host configuration layout
         | total number | size | data | size | data | ... |
         */
-        uint32_t n, m = (uint32_t)host_config_list_.size();
+        uint32_t n, m = (uint32_t)host_config_list.size();
         // number
         p_stream->write_lendian_t(m, p_abort);
         for (n = 0; n < m; ++n)
         {
-            auto cfg = host_config_list_[n];
+            auto cfg = host_config_list[n];
             // get data
             stream_writer_buffer_simple writer;
-            cfg->get_data_raw(&writer, p_abort);
+            cfg->GetDataRaw(&writer, p_abort);
             // size
             p_stream->write_lendian_t((uint32_t)writer.m_buffer.get_size(), p_abort);
             // data
@@ -270,21 +270,21 @@ void cfg_flowin::get_data_raw(stream_writer* p_stream, abort_callback& p_abort)
     }
 }
 
-void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort)
+void CfgFlowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_callback& p_abort)
 {
-    reset();
+    Reset();
     if (p_sizehint < sizeof(version))
         return;
 
     try
     {
-        static_assert(t_version_current == t_version_012);
+        static_assert(VersionCurrent == Version012);
         p_stream->read_lendian_t(version, p_abort);
         switch (version)
         {
-        case t_version_012:
-        case t_version_011:
-        case t_version_010: {
+        case Version012:
+        case Version011:
+        case Version010: {
             p_stream->read_lendian_t(show_debug_log, p_abort);
             uint32_t n, m = 0;
             p_stream->read_lendian_t(m, p_abort);
@@ -292,9 +292,9 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
             {
                 uint32_t data_size = 0;
                 p_stream->read_lendian_t(data_size, p_abort);
-                auto cfg = new_host_configuration();
-                cfg->set_data_raw(p_stream, data_size, p_abort);
-                host_config_list_.push_back(cfg);
+                auto cfg = NewHostConfiguration();
+                cfg->SetDataRaw(p_stream, data_size, p_abort);
+                host_config_list.push_back(cfg);
             }
             break;
         }
@@ -305,6 +305,6 @@ void cfg_flowin::set_data_raw(stream_reader* p_stream, t_size p_sizehint, abort_
     }
     catch (...)
     {
-        reset();
+        Reset();
     }
 }
