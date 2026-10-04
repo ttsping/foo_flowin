@@ -218,7 +218,8 @@ public:
         {
         case WM_MOUSEMOVE:
         case WM_NCMOUSEMOVE:
-            if (host_config_->enable_snap || host_config_->enable_transparency_active)
+            if (host_config_->enable_snap || host_config_->enable_transparency_active ||
+                host_config_->hide_when_hover)
                 forward_message = true;
 
             if (is_perform_drag_)
@@ -543,6 +544,16 @@ public:
         }
     }
 
+    bool snap_window_auto_hide_enabled()
+    {
+        return host_config_ && host_config_->enable_autohide_when_snapped;
+    }
+
+    bool snap_window_need_mouse_tracking()
+    {
+        return host_config_ && host_config_->hide_when_hover;
+    }
+
     void set_always_on_top(bool on_top)
     {
         SetWindowPos(on_top ? HWND_TOPMOST : HWND_NOTOPMOST, CRect{0}, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
@@ -702,8 +713,7 @@ public:
 
         case menu_commands::snap_auto_hide:
             host_config_->enable_autohide_when_snapped = !host_config_->enable_autohide_when_snapped;
-            snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
-            if (!snap_auto_hide_)
+            if (!host_config_->enable_autohide_when_snapped)
                 RestoreFromSnapHidden();
             break;
 
@@ -927,7 +937,6 @@ private:
 
         // snap config
         enable_snap_ = host_config_->enable_snap;
-        snap_auto_hide_ = host_config_->enable_autohide_when_snapped;
 
         if (!host_config_->show_in_taskbar)
             show_or_hide_on_taskbar(false);

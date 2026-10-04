@@ -90,6 +90,16 @@ public:
     }
 
 protected:
+    bool AutoHideEnabled()
+    {
+        return static_cast<T*>(this)->snap_window_auto_hide_enabled();
+    }
+
+    bool HostNeedsMouseTracking()
+    {
+        return static_cast<T*>(this)->snap_window_need_mouse_tracking();
+    }
+
     LRESULT OnMoving(UINT /*msg*/, WPARAM /*wp*/, LPARAM lp, BOOL& /*handled*/)
     {
         if (!enable_snap_)
@@ -153,7 +163,7 @@ protected:
     LRESULT OnMouseMove(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
         const bool is_snap = (snap_timer_ != NULL) || (snap_state_ != SNAP_NONE);
-        if ((snap_auto_hide_ || is_snap) && !mouse_check_timer_)
+        if ((AutoHideEnabled() || is_snap || HostNeedsMouseTracking()) && !mouse_check_timer_)
         {
             ::PostMessage(GetHWnd(), UWM_MOUSEENTER, 0, 0);
             StartMouseCheckTimer();
@@ -165,7 +175,7 @@ protected:
     {
         mouse_in_window_ = TRUE;
         const auto state = CheckSnapState();
-        if (snap_auto_hide_ || (state == SNAP_NONE && state != snap_state_))
+        if (AutoHideEnabled() || (state == SNAP_NONE && state != snap_state_))
         {
             if (snap_state_ == SNAP_INVALID)
             {
@@ -184,7 +194,7 @@ protected:
     LRESULT OnMouseLeave(UINT /*msg*/, WPARAM /*wp*/, LPARAM /*lp*/, BOOL& /*handled*/)
     {
         mouse_in_window_ = FALSE;
-        if ((snap_state_ != SNAP_NONE) && snap_auto_hide_)
+        if ((snap_state_ != SNAP_NONE) && AutoHideEnabled())
         {
             StartSnapAnimateTimer();
         }
@@ -503,7 +513,6 @@ private:
 
 protected:
     bool enable_snap_ = false;
-    bool snap_auto_hide_ = true;
     int dpi_ = 96;
     int snap_dx_ = 0, snap_dy_ = 0;
     int snap_detect_val_ = 0;
